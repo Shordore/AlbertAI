@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local GPT Chat</title>
+</head>
+<body>
+    <h1>Chat with GPT</h1>
+    <input type="text" id="prompt" placeholder="Enter your message">
+    <button onclick="generateText()">Generate</button>
+    <p id="output"></p>
+
+    <script>
+        async function generateText() {
+            let prompt = document.getElementById("prompt").value;
+            let response = await fetch("http://127.0.0.1:5000/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt })
+            });
+
+            let data = await response.json();
+            document.getElementById("output").innerText = data.content;
+        }
+    </script>
+</body>
+</html>
