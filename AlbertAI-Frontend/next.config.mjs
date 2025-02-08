@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  trailingSlash: true,
+  trailingSlash: true, 
 };
 
 export default nextConfig;
