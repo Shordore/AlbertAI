@@ -7,7 +7,7 @@ This guide will help you set up the AlbertAI Backend and database on your local 
 Ensure you have the following installed:
 
 - .NET 8.0 SDK
-- MySQL 8.0+
+- MySQL 8.4.3
 
 ## Setting Up MySQL Database
 
