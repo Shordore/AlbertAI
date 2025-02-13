@@ -21,7 +21,6 @@ namespace MyBackend.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-
             modelBuilder.Entity("AlbertAI.Models.ClassCode", b =>
                 {
                     b.Property<int>("Id")
@@ -68,7 +67,6 @@ namespace MyBackend.Migrations
                     b.ToTable("Flashcards");
                 });
 
-
             modelBuilder.Entity("AlbertAI.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -96,7 +94,6 @@ namespace MyBackend.Migrations
 
                     b.ToTable("Users");
                 });
-
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>
                 {
@@ -135,7 +132,6 @@ namespace MyBackend.Migrations
                 {
                     b.Navigation("UserClasses");
                 });
-
 #pragma warning restore 612, 618
         }
     }

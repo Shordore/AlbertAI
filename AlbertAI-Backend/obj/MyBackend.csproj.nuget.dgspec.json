@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {}
+    "/Users/jacobkantor/Desktop/Classes/Spring25/CIS4914/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {}
   },
   "projects": {
-    "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {
+    "/Users/jacobkantor/Desktop/Classes/Spring25/CIS4914/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
+        "projectUniqueName": "/Users/jacobkantor/Desktop/Classes/Spring25/CIS4914/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
         "projectName": "MyBackend",
-        "projectPath": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
-        "packagesPath": "/Users/sdarioosh/.nuget/packages/",
-        "outputPath": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/obj/",
+        "projectPath": "/Users/jacobkantor/Desktop/Classes/Spring25/CIS4914/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
+        "packagesPath": "/Users/jacobkantor/.nuget/packages/",
+        "outputPath": "/Users/jacobkantor/Desktop/Classes/Spring25/CIS4914/AlbertAI/AlbertAI-Backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/sdarioosh/.nuget/NuGet/NuGet.Config"
+          "/Users/jacobkantor/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -32,11 +32,6 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -107,7 +102,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.403/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@8/8.0.13/libexec/sdk/8.0.113/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
