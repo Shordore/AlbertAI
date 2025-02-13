@@ -29,10 +29,14 @@ export default function Navbar() {
           variant="ghost"
           className="text-white hover:text-[#1E40AF] rounded hover:bg-white"
         >
-          Sign In
+          <Link href="/sign-in">Sign In</Link>
+
         </Button>
-        <Button className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded">
-          Join Class
+        <Button
+          asChild
+          className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded"
+        >
+          <Link href="/sign-up">Join Class</Link>
         </Button>
       </div>
 
