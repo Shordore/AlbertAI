@@ -29,7 +29,8 @@ export default function Navbar() {
           variant="ghost"
           className="text-white hover:text-[#1E40AF] rounded hover:bg-white"
         >
-          Sign In
+          <Link href="/sign-in">Sign In</Link>
+
         </Button>
         <Button
           asChild
