@@ -16,6 +16,10 @@ namespace AlbertAI.Data
 
         // DbSets for all entities
         public DbSet<User> Users { get; set; }
+        public DbSet<Flashcard> Flashcards { get; set; }
+
+        public DbSet<UserClass> UserClasses { get; set; }
+        public DbSet<ClassCode> ClassCodes { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

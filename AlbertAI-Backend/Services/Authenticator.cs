@@ -50,7 +50,7 @@ namespace AlbertAI.Services
 
 
         // Hash password using SHA256 (same as before)
-        private string HashPassword(string password)
+        public string HashPassword(string password)
         {
             using (SHA256 sha256Hash = SHA256.Create())
             {
