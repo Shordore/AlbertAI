@@ -31,8 +31,11 @@ export default function Navbar() {
         >
           Sign In
         </Button>
-        <Button className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded">
-          Join Class
+        <Button
+          asChild
+          className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded"
+        >
+          <Link href="/sign-up">Join Class</Link>
         </Button>
       </div>
 
