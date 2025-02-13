@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.1) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-webkit-autofill::first-line {
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+/* Firefox */
+input:autofill {
+  filter: none;
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.1) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Firefox */
+input:autofill {
+  filter: none;
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 0%;
@@ -42,4 +82,3 @@
     transform: translateY(0px) rotate(0deg);
   }
 }
-
