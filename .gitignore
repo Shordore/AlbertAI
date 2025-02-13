@@ -1,1 +1,12 @@
+AlbertAI-Backend/obj/
 AlbertAI-Backend/bin/
+AlbertAI-Backend/Migrations/
+AlbertAI-Backend/Migrations/AppDbContextModelSnapshot.cs
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.AssemblyInfo.cs
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.AssemblyInfoInputs.cache
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.csproj.CoreCompileInputs.cache
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.dll
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.pdb
+AlbertAI-Backend/obj/Debug/net8.0/MyBackend.sourcelink.json
+AlbertAI-Backend/obj/Debug/net8.0/ref/MyBackend.dll
+AlbertAI-Backend/obj/Debug/net8.0/refint/MyBackend.dll

@@ -2,6 +2,7 @@
 
 using System.Security.Claims;
 using AlbertAI.Data;
+using AlbertAI.Models;
 using AlbertAI.Models.DTO;
 using AlbertAI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -25,22 +26,60 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
-        // POST: api/Account/register
+
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            // Check if the incoming request model is valid
+            // Validate request
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Attempt to register the user using the Authenticator service
-            var result = await _authenticator.RegisterAsync(request.UFID, request.Password, request.Name);
-            if (!result)
+            // Ensure a class code is provided
+            if (string.IsNullOrWhiteSpace(request.classCode))
+                return BadRequest(new { message = "A valid course code is required to register." });
+
+            // Check if the class code exists in the database
+            var classEntry = await _context.ClassCodes.FirstOrDefaultAsync(c => c.Code == request.classCode);
+            if (classEntry == null)
+                return BadRequest(new { message = "Invalid course code. Please enter a valid code to register." });
+
+            // Check if the UFID already exists
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UFID == request.UFID);
+            if (existingUser != null)
                 return BadRequest(new { message = "UFID already exists. Please choose a different UFID." });
 
-            // Return a success message upon successful registration
-            return Ok(new { message = "User registered successfully." });
+            // Hash the password
+            var passwordHash = _authenticator.HashPassword(request.Password);
+
+            // Create new user
+            var newUser = new User
+            {
+                UFID = request.UFID,
+                PasswordHash = passwordHash,
+                Name = request.Name,
+                UserClasses = new List<UserClass>() // Initialize user class list
+            };
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync(); // Save user first to generate an ID
+
+            // Ensure the user has an ID before adding classes
+            var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.UFID == request.UFID);
+            if (userFromDb == null)
+                return BadRequest(new { message = "User registration failed unexpectedly." });
+
+            // Add user to class
+            var userClass = new UserClass
+            {
+                UserId = userFromDb.Id, // Ensure user ID is set
+                ClassName = classEntry.ClassName
+            };
+
+            _context.UserClasses.Add(userClass);
+            await _context.SaveChangesAsync(); // Ensure class association is saved
+
+            return Ok(new { message = "User registered successfully and enrolled in " + classEntry.ClassName });
         }
 
         // POST: api/Account/login
@@ -61,51 +100,52 @@ namespace AlbertAI.Controllers
             return Ok(new { Token = token });
         }
 
-        // GET: api/Account/me
+
         [HttpGet("me")]
         public async Task<ActionResult<UserResponse>> GetCurrentUser()
         {
-            // Extract the UFID of the authenticated user from the claims
+            // Extract the UFID of the authenticated user
             var ufid = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (ufid == null)
                 return Unauthorized(new { message = "User not authenticated." });
 
-
+            // Include UserClasses in the query
             var user = await _context.Users
+                .Include(u => u.UserClasses) // Ensure classes are loaded
                 .FirstOrDefaultAsync(u => u.UFID == ufid);
 
             if (user == null)
                 return NotFound(new { message = "User not found." });
 
-            // Map the user entity to a UserResponse DTO
+            // Convert UserClass list to class names
             var response = new UserResponse
             {
                 Id = user.Id,
                 UFID = user.UFID,
                 Name = user.Name,
-
+                Classes = user.UserClasses.Select(uc => uc.ClassName).ToList()
             };
 
-            // Return the user profile information
             return Ok(response);
         }
 
         // PUT: api/Account/me
+        // PUT: api/Account/me
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            // Validate the incoming request model
+            // Validate the request model
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Extract the UFID of the authenticated user from the claims
+            // Extract the UFID of the authenticated user
             var ufid = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (ufid == null)
                 return Unauthorized(new { message = "User not authenticated." });
 
-
+            // Find the user in the database
             var user = await _context.Users
-
+                .Include(u => u.UserClasses) // Include existing user classes
                 .FirstOrDefaultAsync(u => u.UFID == ufid);
 
             if (user == null)
@@ -114,11 +154,30 @@ namespace AlbertAI.Controllers
             // Update user properties with the new values from the request
             user.Name = request.Name;
 
+            // Check if the user provided a course code
+            if (!string.IsNullOrWhiteSpace(request.classCode))
+            {
+                // Look up the class associated with the course code
+                var classEntry = await _context.ClassCodes.FirstOrDefaultAsync(c => c.Code == request.classCode);
+                if (classEntry == null)
+                {
+                    return BadRequest(new { message = "Invalid course code." });
+                }
+
+                // Check if the user is already enrolled in this class
+                if (user.UserClasses.Any(uc => uc.ClassName == classEntry.ClassName))
+                {
+                    return BadRequest(new { message = "You are already enrolled in this class." });
+                }
+
+                // Add the class to the user’s profile
+                user.UserClasses.Add(new UserClass { ClassName = classEntry.ClassName, UserId = user.Id });
+            }
+
             // Save the changes to the database
             await _context.SaveChangesAsync();
 
-            // Return a NoContent response to indicate successful update
-            return NoContent();
+            return NoContent(); // Indicate success with no response body
         }
     }
 }

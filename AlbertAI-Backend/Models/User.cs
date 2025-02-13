@@ -14,6 +14,8 @@ namespace AlbertAI.Models
 
         public string Name { get; set; }
 
+        public ICollection<UserClass> UserClasses { get; set; } = new List<UserClass>();
+
     }
 
 }

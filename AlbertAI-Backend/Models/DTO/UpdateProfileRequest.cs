@@ -5,8 +5,9 @@ namespace AlbertAI.Models.DTO
 {
     public class UpdateProfileRequest
     {
-        [Required]
+
         public string Name { get; set; }
+        public string classCode { get; set; }
 
     }
 }
