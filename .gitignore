@@ -1,1 +1,4 @@
+AlbertAI-Backend/obj/
 AlbertAI-Backend/bin/
+AlbertAI-Backend/Migrations/
+AlbertAI-Backend/Migrations/AppDbContextModelSnapshot.cs
