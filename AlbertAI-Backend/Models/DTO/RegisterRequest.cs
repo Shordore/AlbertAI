@@ -13,6 +13,9 @@ namespace AlbertAI.Models.DTO
 
         public string Name { get; set; }
 
+        [Required]
+        public string classCode { get; set; }
+
 
     }
 }
