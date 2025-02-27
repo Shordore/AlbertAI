@@ -99,3 +99,80 @@ namespace AlbertAI.Controllers
         }
     }
 }
+
+
+// NOTE: This is an in-memory version of the FlashcardController, used for testing.
+//      Swap this out with the EF Core version once the database is ready.
+
+// using System;
+// using System.Collections.Generic;
+// using System.Linq;
+// using Microsoft.AspNetCore.Mvc;
+// using AlbertAI.Models;
+
+
+// namespace AlbertAI.Controllers
+// {
+//     [ApiController]
+//     [Route("api/[controller]")]
+//     public class FlashcardController : ControllerBase
+//     {
+//         // In-memory storage
+//         private static readonly List<Flashcard> _flashcards = new List<Flashcard>();
+//         private static int _nextId = 1;
+
+
+//         [HttpGet]
+//         public ActionResult<IEnumerable<Flashcard>> GetFlashcards()
+//         {
+//             return Ok(_flashcards);
+//         }
+
+
+//         [HttpGet("{id}")]
+//         public ActionResult<Flashcard> GetFlashcard(int id)
+//         {
+//             var flashcard = _flashcards.FirstOrDefault(f => f.Id == id);
+//             if (flashcard == null)
+//                 return NotFound();
+//             return flashcard;
+//         }
+
+
+//         [HttpPost]
+//         public ActionResult<Flashcard> CreateFlashcard(Flashcard flashcard)
+//         {
+//             flashcard.Id = _nextId++;
+//             _flashcards.Add(flashcard);
+//             return CreatedAtAction(nameof(GetFlashcard), new { id = flashcard.Id }, flashcard);
+//         }
+
+
+//         [HttpGet("random")]
+//         public ActionResult<Flashcard> GetRandomFlashcard()
+//         {
+//             if (!_flashcards.Any())
+//                 return NotFound("No flashcards available");
+               
+//             var random = new Random();
+//             var index = random.Next(0, _flashcards.Count);
+//             return _flashcards[index];
+//         }
+
+
+//         [HttpDelete("{id}")]
+//         public ActionResult DeleteFlashcard(int id)
+//         {
+//             var flashcard = _flashcards.FirstOrDefault(f => f.Id == id);
+//             if (flashcard == null)
+//                 return NotFound();
+
+
+//             _flashcards.Remove(flashcard);
+//             return NoContent();
+//         }
+//     }
+// }
+
+
+
