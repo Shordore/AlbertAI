@@ -119,3 +119,4 @@
 /Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/obj/Debug/net8.0/MyBackend.pdb
 /Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/obj/Debug/net8.0/MyBackend.genruntimeconfig.cache
 /Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/obj/Debug/net8.0/ref/MyBackend.dll
+/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/bin/Debug/net8.0/package-lock.json
