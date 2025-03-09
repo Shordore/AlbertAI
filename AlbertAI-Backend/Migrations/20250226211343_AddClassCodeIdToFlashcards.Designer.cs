@@ -3,6 +3,7 @@ using AlbertAI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MyBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250226211343_AddClassCodeIdToFlashcards")]
+    partial class AddClassCodeIdToFlashcards
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58,15 +61,19 @@ namespace MyBackend.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Question")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClassCodeId");
+
                     b.ToTable("Flashcards");
                 });
-
 
             modelBuilder.Entity("AlbertAI.Models.User", b =>
                 {
@@ -116,6 +123,17 @@ namespace MyBackend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserClasses");
+                });
+
+            modelBuilder.Entity("AlbertAI.Models.Flashcard", b =>
+                {
+                    b.HasOne("AlbertAI.Models.ClassCode", "ClassCode")
+                        .WithMany()
+                        .HasForeignKey("ClassCodeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClassCode");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>
