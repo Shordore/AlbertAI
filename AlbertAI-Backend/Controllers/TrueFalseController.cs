@@ -49,7 +49,7 @@ namespace AlbertAI.Controllers
             var count = await _context.TrueFalses.CountAsync();
             if (count == 0)
                 return NotFound("No questions available");
-                
+
             var random = new Random();
             var index = random.Next(0, count);
             return await _context.TrueFalses
@@ -82,7 +82,7 @@ namespace AlbertAI.Controllers
             return NoContent();
         }
     }
-    */
+}
 
 //     // Uncomment the in-memory version
 //     [ApiController]
@@ -121,7 +121,7 @@ namespace AlbertAI.Controllers
 //         {
 //             if (_questions.Count == 0)
 //                 return NotFound("No questions available");
-                
+
 //             var random = new Random();
 //             var index = random.Next(0, _questions.Count);
 //             return Ok(_questions[index]);

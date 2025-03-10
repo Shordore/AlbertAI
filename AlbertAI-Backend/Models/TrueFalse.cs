@@ -7,7 +7,8 @@ namespace AlbertAI.Models
         public class TrueFalse
         {
 
-                // New properties to add
+                [Key]
+                public int Id { get; set; }
                 public DateTime CreatedAt { get; set; }
                 public DateTime? LastReviewed { get; set; }
                 public int TimesReviewed { get; set; }
