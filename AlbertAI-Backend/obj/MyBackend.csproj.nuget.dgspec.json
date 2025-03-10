@@ -1,25 +1,32 @@
 {
   "format": 1,
   "restore": {
-    "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {}
+    "C:\\Users\\sea77\\Documents\\AlbertAI\\AlbertAI\\AlbertAI-Backend\\MyBackend.csproj": {}
   },
   "projects": {
-    "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj": {
+    "C:\\Users\\sea77\\Documents\\AlbertAI\\AlbertAI\\AlbertAI-Backend\\MyBackend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
+        "projectUniqueName": "C:\\Users\\sea77\\Documents\\AlbertAI\\AlbertAI\\AlbertAI-Backend\\MyBackend.csproj",
         "projectName": "MyBackend",
-        "projectPath": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/MyBackend.csproj",
-        "packagesPath": "/Users/sdarioosh/.nuget/packages/",
-        "outputPath": "/Volumes/Oxy_Code_On/School/Coding Projects/AlbertAI/AlbertAI/AlbertAI-Backend/obj/",
+        "projectPath": "C:\\Users\\sea77\\Documents\\AlbertAI\\AlbertAI\\AlbertAI-Backend\\MyBackend.csproj",
+        "packagesPath": "C:\\Users\\sea77\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\sea77\\Documents\\AlbertAI\\AlbertAI\\AlbertAI-Backend\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/Users/sdarioosh/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\sea77\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -37,7 +44,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -107,7 +115,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.403/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

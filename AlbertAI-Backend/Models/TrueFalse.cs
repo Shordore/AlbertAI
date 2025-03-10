@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AlbertAI.Models
 {
-    public class Flashcard
+    public class TrueFalse
     {
         [Key]
         public int Id { get; set; } // Unique identifier
@@ -12,7 +12,7 @@ namespace AlbertAI.Models
         public string Question { get; set; } // Flashcard question
 
         [Required]
-        public string Answer { get; set; } // Flashcard answer
+        public bool Answer { get; set; }  // true or false
 
         public string Category { get; set; } // Optional category
 
