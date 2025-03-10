@@ -1,3 +1,4 @@
+using albertai.models;
 using AlbertAI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,7 @@ namespace AlbertAI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<MultipleChoice> MultipleChoices { get; set; }
         public DbSet<Flashcard> Flashcards { get; set; }
-        public DbSet<TrueFalse> TrueFalse { get; set; }
+        public DbSet<TrueFalse> TrueFalses { get; set; }
         public DbSet<UserClass> UserClasses { get; set; }
         public DbSet<ClassCode> ClassCodes { get; set; }
 
