@@ -5,13 +5,22 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using DotEnv.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load environment variables from .env file
+DotEnv.Load();
+
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
+
+// Set Azure OpenAI API key from environment variable
+builder.Configuration["AzureOpenAI:ApiKey"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+builder.Configuration["JwtSettings:Secret"] = Environment.GetEnvironmentVariable("JWT_SECRET");
 
 // Add CORS services and define a policy
 builder.Services.AddCors(options =>
