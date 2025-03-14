@@ -22,7 +22,10 @@ export default function Navbar() {
         <NavLink href="/how-it-works">How it Works</NavLink>
         <NavLink href="/features">Features</NavLink>
         <NavLink href="/examples">Study Modes</NavLink>
+<<<<<<< HEAD
         <NavLink href="/chat">AI Chatbot</NavLink>
+=======
+>>>>>>> 664438bee1db649c97cad6b00972d948ab838e25
       </div>
 
       <div className="hidden md:flex items-center space-x-4">

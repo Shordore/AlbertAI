@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+<<<<<<< HEAD
 using DotEnv.Net;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,16 +13,23 @@ var builder = WebApplication.CreateBuilder(args);
 // Load environment variables from .env file
 DotEnv.Load();
 
+=======
+
+var builder = WebApplication.CreateBuilder(args);
+>>>>>>> 664438bee1db649c97cad6b00972d948ab838e25
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
+<<<<<<< HEAD
 // Set Azure OpenAI API key from environment variable
 builder.Configuration["AzureOpenAI:ApiKey"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
 builder.Configuration["JwtSettings:Secret"] = Environment.GetEnvironmentVariable("JWT_SECRET");
 
+=======
+>>>>>>> 664438bee1db649c97cad6b00972d948ab838e25
 // Add CORS services and define a policy
 builder.Services.AddCors(options =>
 {
@@ -122,7 +130,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "AlbertAI API V1");
+<<<<<<< HEAD
         c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
+=======
+        c.RoutePrefix = string.Empty; // Set Swagger UI at the root
+>>>>>>> 664438bee1db649c97cad6b00972d948ab838e25
     });
 }
 
