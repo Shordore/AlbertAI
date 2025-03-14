@@ -113,7 +113,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "AlbertAI API V1");
-        c.RoutePrefix = string.Empty; // Set Swagger UI at the root
+        c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
     });
 }
 
