@@ -23,11 +23,6 @@ namespace AlbertAI
         {
             services.AddControllers();
             services.AddSingleton<Authenticator>(); // Register Authenticator service
-<<<<<<< HEAD
-            services.AddSingleton<AIService>();
-=======
-
->>>>>>> 664438bee1db649c97cad6b00972d948ab838e25
 
             // Add the DbContext
             services.AddDbContext<AppDbContext>(options =>
