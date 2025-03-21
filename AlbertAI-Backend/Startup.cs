@@ -24,7 +24,6 @@ namespace AlbertAI
             services.AddControllers();
             services.AddSingleton<Authenticator>(); // Register Authenticator service
 
-
             // Add the DbContext
             services.AddDbContext<AppDbContext>(options =>
                 options.UseMySql(Configuration.GetConnectionString("DefaultConnection"),
