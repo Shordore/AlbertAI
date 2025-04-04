@@ -1,28 +1,41 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { StaticSparkles } from "@/components/static-sparkles"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Icons } from "@/components/icons"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { StaticSparkles } from "@/components/static-sparkles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Icons } from "@/components/icons";
 
 export default function SignInPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsLoading(true)
+    event.preventDefault();
+    setIsLoading(true);
 
     // Here you would typically send the form data to your backend for authentication
-    const formData = new FormData(event.currentTarget)
-    console.log("Submitting form data:", Object.fromEntries(formData))
+    const formData = new FormData(event.currentTarget);
+    console.log("Submitting form data:", Object.fromEntries(formData));
 
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
+    try {
+      // TODO: Add your authentication API call here
+      // const response = await signIn(formData)
+
+      // Simulate successful authentication
+      setTimeout(() => {
+        setIsLoading(false);
+        // Redirect to student dashboard after successful sign in
+        router.push("/student-dashboard");
+      }, 3000);
+    } catch (error) {
+      console.error("Authentication error:", error);
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -53,7 +66,9 @@ export default function SignInPage() {
             </Button>
           </Link>
           <Link href="/sign-up">
-            <Button className="bg-blue-600 text-white hover:bg-blue-700 rounded">Join Class</Button>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700 rounded">
+              Join Class
+            </Button>
           </Link>
         </div>
       </nav>
@@ -67,8 +82,12 @@ export default function SignInPage() {
           className="w-full max-w-md space-y-6 border border-white/20 rounded-xl p-8"
         >
           <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-white">Welcome back</h2>
-            <p className="mt-2 text-lg text-gray-400">Sign in to your AlbertAI account</p>
+            <h2 className="text-4xl font-bold tracking-tight text-white">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-lg text-gray-400">
+              Sign in to your AlbertAI account
+            </p>
           </div>
           <form onSubmit={onSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
@@ -106,18 +125,30 @@ export default function SignInPage() {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded" disabled={isLoading}>
-              {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded"
+              disabled={isLoading}
+            >
+              {isLoading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Sign In
             </Button>
           </form>
           <div className="text-center space-y-2">
-            <Link href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-blue-400 hover:text-blue-300"
+            >
               Forgot your password?
             </Link>
             <p className="text-sm text-gray-400">
               Don't have an account?{" "}
-              <Link href="/sign-up" className="text-blue-400 hover:text-blue-300">
+              <Link
+                href="/sign-up"
+                className="text-blue-400 hover:text-blue-300"
+              >
                 Sign up
               </Link>
             </p>
@@ -125,6 +156,5 @@ export default function SignInPage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
-
