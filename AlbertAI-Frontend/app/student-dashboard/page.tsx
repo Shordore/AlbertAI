@@ -37,6 +37,7 @@ import {
   ChevronUp,
   Settings,
   LogOut,
+  Bot,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -273,417 +274,8 @@ export default function StudentDashboardPage() {
   return (
     <div className="min-h-screen bg-black">
       <div className="flex">
-        {/* Main Content */}
-        <div className="flex-1 p-6">
-          {/* Header */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <DropdownMenu>
-                <div className="w-full">
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full h-full p-6 text-left bg-gradient-to-br from-[#3B4CCA] to-[#1E3A8A] hover:from-[#3B4CCA] hover:to-[#1E3A8A] hover:shadow-xl hover:scale-[1.02] rounded-xl transition-all duration-300 group relative"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <BookOpen className="h-8 w-8 text-blue-200" />
-                        <div>
-                          <h3 className="text-2xl font-bold text-white mb-1">
-                            Biology 101
-                          </h3>
-                          <p className="text-blue-200">Current Course</p>
-                        </div>
-                      </div>
-                      <ChevronDown className="h-5 w-5 text-blue-200 absolute top-1/2 right-6 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    sideOffset={8}
-                    className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
-                  >
-                    <AnimatePresence>
-                      {["Biology 101", "Chemistry 201", "Physics 301"].map(
-                        (course, index) => (
-                          <motion.div
-                            key={course}
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                          >
-                            <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1">
-                              {course}
-                            </DropdownMenuItem>
-                          </motion.div>
-                        )
-                      )}
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2, delay: 0.15 }}
-                      >
-                        <DropdownMenuItem
-                          className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
-                          onSelect={() => setIsAddClassDialogOpen(true)}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          <span>Add Class</span>
-                        </DropdownMenuItem>
-                      </motion.div>
-                    </AnimatePresence>
-                  </DropdownMenuContent>
-                </div>
-              </DropdownMenu>
-            </div>
-            <div className="flex-1">
-              <DropdownMenu>
-                <div className="w-full">
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full h-full p-6 text-left bg-gradient-to-br from-[#FF8C00] to-[#FF4500] hover:from-[#FF8C00] hover:to-[#FF4500] hover:shadow-xl hover:scale-[1.02] rounded-xl transition-all duration-300 group relative"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <ClipboardCheck className="h-8 w-8 text-purple-200" />
-                        <div>
-                          <h3 className="text-2xl font-bold text-white mb-1">
-                            Exam 1
-                          </h3>
-                          <p className="text-purple-200">Current Focus</p>
-                        </div>
-                      </div>
-                      <ChevronDown className="h-5 w-5 text-purple-200 absolute top-1/2 right-6 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    sideOffset={8}
-                    className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
-                  >
-                    <AnimatePresence>
-                      {["Exam 1", "Final Exam", "Midterm Exam"].map(
-                        (exam, index) => (
-                          <motion.div
-                            key={exam}
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                          >
-                            <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1">
-                              {exam}
-                            </DropdownMenuItem>
-                          </motion.div>
-                        )
-                      )}
-                    </AnimatePresence>
-                  </DropdownMenuContent>
-                </div>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                  Flashcards
-                </CardTitle>
-                <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  245
-                </div>
-                <p className="text-xs text-zinc-500 group-hover:text-black">
-                  +20 since last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                  True/False Questions
-                </CardTitle>
-                <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  120
-                </div>
-                <p className="text-xs text-zinc-500 group-hover:text-black">
-                  +8 since last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                  Multiple Choice
-                </CardTitle>
-                <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  180
-                </div>
-                <p className="text-xs text-zinc-500 group-hover:text-black">
-                  +15 since last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                  Practice Tests
-                </CardTitle>
-                <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  12
-                </div>
-                <p className="text-xs text-zinc-500 group-hover:text-black">
-                  +2 since last week
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance Chart and Study Progress */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {/* Performance Chart */}
-            <Card className="col-span-2 p-6 bg-[#111111] border border-[#222222] rounded-xl hover:bg-[#191919] transition-colors duration-200">
-              <h3 className="text-lg font-medium text-white mb-8">
-                Performance Over Time
-              </h3>
-              <div className="h-[300px] w-full">
-                <LineChart
-                  width={800}
-                  height={300}
-                  data={performanceData}
-                  margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#222222"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#666666"
-                    tick={{ fill: "#666666", fontSize: 12 }}
-                    axisLine={{ stroke: "#222222" }}
-                  />
-                  <YAxis
-                    stroke="#666666"
-                    tick={{ fill: "#666666", fontSize: 12 }}
-                    axisLine={{ stroke: "#222222" }}
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#111111",
-                      border: "1px solid #222222",
-                      borderRadius: "8px",
-                      color: "#666666",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value, name) => [`${value}%`, name]}
-                    labelStyle={{ color: "#666666" }}
-                    cursor={{ stroke: "#333333", strokeWidth: 1 }}
-                  />
-                  <Line
-                    type="monotone"
-                    name="Flashcards"
-                    dataKey="flashcards"
-                    stroke="#3B4CCA"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#3B4CCA", strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: "#3B4CCA", strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    name="True/False"
-                    dataKey="trueFalse"
-                    stroke="#1E3A8A"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#1E3A8A", strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: "#1E3A8A", strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    name="Multiple Choice"
-                    dataKey="multipleChoice"
-                    stroke="#FF8C00"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#FF8C00", strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: "#FF8C00", strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    name="Practice Tests"
-                    dataKey="practiceTests"
-                    stroke="#FF4500"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#FF4500", strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: "#FF4500", strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </div>
-            </Card>
-
-            {/* Study Progress */}
-            <Card className="p-6 bg-[#111111] border border-[#222222] rounded-xl">
-              <h3 className="text-lg font-medium text-white mb-8">
-                Study Progress
-              </h3>
-              <div className="flex flex-col items-center justify-between h-[300px]">
-                <div className="relative w-64 h-64">
-                  <svg
-                    viewBox="0 0 100 100"
-                    className="transform -rotate-90 w-full h-full"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="masteredGradient"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
-                      >
-                        <stop offset="0%" style={{ stopColor: "#3B4CCA" }} />
-                        <stop offset="100%" style={{ stopColor: "#1E3A8A" }} />
-                      </linearGradient>
-                      <linearGradient
-                        id="progressGradient"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
-                      >
-                        <stop offset="0%" style={{ stopColor: "#FF8C00" }} />
-                        <stop offset="100%" style={{ stopColor: "#FF4500" }} />
-                      </linearGradient>
-                    </defs>
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#222222"
-                      strokeWidth="12"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="url(#masteredGradient)"
-                      strokeWidth="12"
-                      strokeDasharray={`${75 * 2.51} ${100 * 2.51}`}
-                      className="transition-all duration-1000 ease-in-out"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="url(#progressGradient)"
-                      strokeWidth="12"
-                      strokeDasharray={`${25 * 2.51} ${100 * 2.51}`}
-                      strokeDashoffset={`${-75 * 2.51}`}
-                      className="transition-all duration-1000 ease-in-out"
-                    />
-                  </svg>
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                    <span className="text-4xl font-bold text-white">75%</span>
-                  </div>
-                </div>
-                <div className="flex justify-center gap-8">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#3B4CCA]"></div>
-                    <span className="text-sm text-zinc-400">Mastered</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#FF8C00]"></div>
-                    <span className="text-sm text-zinc-400">In Progress</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Study History */}
-          <Card className="p-4 bg-[#111111] border border-[#222222] rounded-xl">
-            <h3 className="text-lg font-medium mb-4 text-white">
-              Study History
-            </h3>
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="bg-[#111111]">Study Set Name</TableHead>
-                  <TableHead className="bg-[#111111]">
-                    <SortButton columnKey="lastStudied" label="Last Studied" />
-                  </TableHead>
-                  <TableHead className="bg-[#111111]">
-                    <SortButton columnKey="score" label="Score" />
-                  </TableHead>
-                  <TableHead className="bg-[#111111]">
-                    Flashcards Reviewed
-                  </TableHead>
-                  <TableHead className="bg-[#111111]">
-                    True/False Reviewed
-                  </TableHead>
-                  <TableHead className="bg-[#111111]">
-                    Multiple Choice Reviewed
-                  </TableHead>
-                  <TableHead className="bg-[#111111]">
-                    <SortButton columnKey="status" label="Status" />
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedStudyHistory.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="text-white">{item.name}</TableCell>
-                    <TableCell className="text-white">
-                      {item.lastStudied}
-                    </TableCell>
-                    <TableCell className="text-white">{item.score}</TableCell>
-                    <TableCell className="text-white">
-                      {item.flashcards}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {item.trueFalse}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {item.multipleChoice}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          item.status === "Pass"
-                            ? "bg-green-500/20 text-green-500"
-                            : "bg-red-500/20 text-red-500"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-
         {/* Sidebar */}
-        <div className="w-96 border-l border-zinc-800">
+        <div className="w-96 border-r border-zinc-800 min-h-screen">
           {/* Profile Section */}
           <div className="p-4 flex items-center justify-between">
             <DropdownMenu>
@@ -776,6 +368,441 @@ export default function StudentDashboardPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1">
+          {/* Navbar */}
+          <div className="flex items-center gap-2 p-4 border-b border-zinc-800">
+            <Bot className="w-8 h-8 text-[#3B4CCA]" />
+            <span className="text-xl font-semibold text-white">AlbertAI</span>
+          </div>
+
+          {/* Dashboard Content */}
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <DropdownMenu>
+                  <div className="w-full">
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full h-full p-6 text-left bg-gradient-to-br from-[#3B4CCA] to-[#1E3A8A] hover:from-[#3B4CCA] hover:to-[#1E3A8A] hover:shadow-xl hover:scale-[1.02] rounded-xl transition-all duration-300 group relative"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <BookOpen className="h-8 w-8 text-blue-200" />
+                          <div>
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                              Biology 101
+                            </h3>
+                            <p className="text-blue-200">Current Course</p>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-5 w-5 text-blue-200 absolute top-1/2 right-6 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      sideOffset={8}
+                      className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
+                    >
+                      <AnimatePresence>
+                        {["Biology 101", "Chemistry 201", "Physics 301"].map(
+                          (course, index) => (
+                            <motion.div
+                              key={course}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              transition={{
+                                duration: 0.2,
+                                delay: index * 0.05,
+                              }}
+                            >
+                              <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1">
+                                {course}
+                              </DropdownMenuItem>
+                            </motion.div>
+                          )
+                        )}
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2, delay: 0.15 }}
+                        >
+                          <DropdownMenuItem
+                            className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
+                            onSelect={() => setIsAddClassDialogOpen(true)}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Add Class</span>
+                          </DropdownMenuItem>
+                        </motion.div>
+                      </AnimatePresence>
+                    </DropdownMenuContent>
+                  </div>
+                </DropdownMenu>
+              </div>
+              <div className="flex-1">
+                <DropdownMenu>
+                  <div className="w-full">
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full h-full p-6 text-left bg-gradient-to-br from-[#FF8C00] to-[#FF4500] hover:from-[#FF8C00] hover:to-[#FF4500] hover:shadow-xl hover:scale-[1.02] rounded-xl transition-all duration-300 group relative"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <ClipboardCheck className="h-8 w-8 text-purple-200" />
+                          <div>
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                              Exam 1
+                            </h3>
+                            <p className="text-purple-200">Current Focus</p>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-5 w-5 text-purple-200 absolute top-1/2 right-6 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      sideOffset={8}
+                      className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
+                    >
+                      <AnimatePresence>
+                        {["Exam 1", "Final Exam", "Midterm Exam"].map(
+                          (exam, index) => (
+                            <motion.div
+                              key={exam}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              transition={{
+                                duration: 0.2,
+                                delay: index * 0.05,
+                              }}
+                            >
+                              <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1">
+                                {exam}
+                              </DropdownMenuItem>
+                            </motion.div>
+                          )
+                        )}
+                      </AnimatePresence>
+                    </DropdownMenuContent>
+                  </div>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Flashcards
+                  </CardTitle>
+                  <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
+                    245
+                  </div>
+                  <p className="text-xs text-zinc-500 group-hover:text-black">
+                    +20 since last week
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    True/False Questions
+                  </CardTitle>
+                  <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
+                    120
+                  </div>
+                  <p className="text-xs text-zinc-500 group-hover:text-black">
+                    +8 since last week
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Multiple Choice
+                  </CardTitle>
+                  <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
+                    180
+                  </div>
+                  <p className="text-xs text-zinc-500 group-hover:text-black">
+                    +15 since last week
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Practice Tests
+                  </CardTitle>
+                  <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
+                    12
+                  </div>
+                  <p className="text-xs text-zinc-500 group-hover:text-black">
+                    +2 since last week
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Performance Chart and Study Progress */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {/* Performance Chart */}
+              <Card className="col-span-2 p-6 bg-[#111111] border border-[#222222] rounded-xl hover:bg-[#191919] transition-colors duration-200">
+                <h3 className="text-lg font-medium text-white mb-8">
+                  Performance Over Time
+                </h3>
+                <div className="h-[300px] w-full">
+                  <LineChart
+                    width={800}
+                    height={300}
+                    data={performanceData}
+                    margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#222222"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#666666"
+                      tick={{ fill: "#666666", fontSize: 12 }}
+                      axisLine={{ stroke: "#222222" }}
+                    />
+                    <YAxis
+                      stroke="#666666"
+                      tick={{ fill: "#666666", fontSize: 12 }}
+                      axisLine={{ stroke: "#222222" }}
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#111111",
+                        border: "1px solid #222222",
+                        borderRadius: "8px",
+                        color: "#666666",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value, name) => [`${value}%`, name]}
+                      labelStyle={{ color: "#666666" }}
+                      cursor={{ stroke: "#333333", strokeWidth: 1 }}
+                    />
+                    <Line
+                      type="monotone"
+                      name="Flashcards"
+                      dataKey="flashcards"
+                      stroke="#3B4CCA"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#3B4CCA", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#3B4CCA", strokeWidth: 0 }}
+                    />
+                    <Line
+                      type="monotone"
+                      name="True/False"
+                      dataKey="trueFalse"
+                      stroke="#1E3A8A"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#1E3A8A", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#1E3A8A", strokeWidth: 0 }}
+                    />
+                    <Line
+                      type="monotone"
+                      name="Multiple Choice"
+                      dataKey="multipleChoice"
+                      stroke="#FF8C00"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#FF8C00", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#FF8C00", strokeWidth: 0 }}
+                    />
+                    <Line
+                      type="monotone"
+                      name="Practice Tests"
+                      dataKey="practiceTests"
+                      stroke="#FF4500"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#FF4500", strokeWidth: 0 }}
+                      activeDot={{ r: 6, fill: "#FF4500", strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </div>
+              </Card>
+
+              {/* Study Progress */}
+              <Card className="p-6 bg-[#111111] border border-[#222222] rounded-xl">
+                <h3 className="text-lg font-medium text-white mb-8">
+                  Study Progress
+                </h3>
+                <div className="flex flex-col items-center justify-between h-[300px]">
+                  <div className="relative w-64 h-64">
+                    <svg
+                      viewBox="0 0 100 100"
+                      className="transform -rotate-90 w-full h-full"
+                    >
+                      <defs>
+                        <linearGradient
+                          id="masteredGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="0%"
+                        >
+                          <stop offset="0%" style={{ stopColor: "#3B4CCA" }} />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: "#1E3A8A" }}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="progressGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="0%"
+                        >
+                          <stop offset="0%" style={{ stopColor: "#FF8C00" }} />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: "#FF4500" }}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="#222222"
+                        strokeWidth="12"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="url(#masteredGradient)"
+                        strokeWidth="12"
+                        strokeDasharray={`${75 * 2.51} ${100 * 2.51}`}
+                        className="transition-all duration-1000 ease-in-out"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="url(#progressGradient)"
+                        strokeWidth="12"
+                        strokeDasharray={`${25 * 2.51} ${100 * 2.51}`}
+                        strokeDashoffset={`${-75 * 2.51}`}
+                        className="transition-all duration-1000 ease-in-out"
+                      />
+                    </svg>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                      <span className="text-4xl font-bold text-white">75%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-8">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#3B4CCA]"></div>
+                      <span className="text-sm text-zinc-400">Mastered</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#FF8C00]"></div>
+                      <span className="text-sm text-zinc-400">In Progress</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Study History */}
+            <Card className="p-4 bg-[#111111] border border-[#222222] rounded-xl">
+              <h3 className="text-lg font-medium mb-4 text-white">
+                Study History
+              </h3>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="bg-[#111111]">
+                      Study Set Name
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      <SortButton
+                        columnKey="lastStudied"
+                        label="Last Studied"
+                      />
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      <SortButton columnKey="score" label="Score" />
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      Flashcards Reviewed
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      True/False Reviewed
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      Multiple Choice Reviewed
+                    </TableHead>
+                    <TableHead className="bg-[#111111]">
+                      <SortButton columnKey="status" label="Status" />
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedStudyHistory.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="text-white">{item.name}</TableCell>
+                      <TableCell className="text-white">
+                        {item.lastStudied}
+                      </TableCell>
+                      <TableCell className="text-white">{item.score}</TableCell>
+                      <TableCell className="text-white">
+                        {item.flashcards}
+                      </TableCell>
+                      <TableCell className="text-white">
+                        {item.trueFalse}
+                      </TableCell>
+                      <TableCell className="text-white">
+                        {item.multipleChoice}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            item.status === "Pass"
+                              ? "bg-green-500/20 text-green-500"
+                              : "bg-red-500/20 text-red-500"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           </div>
         </div>
       </div>
