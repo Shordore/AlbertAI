@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build-no-check": "NEXT_SKIP_TYPE_CHECK=1 next build"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.2",
@@ -14,6 +15,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.4.2",
     "lucide-react": "^0.475.0",
