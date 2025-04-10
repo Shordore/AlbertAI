@@ -79,20 +79,17 @@ export default function FlashcardsPage() {
 
   const slideVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 300 : -300,
-      y: -100,
+      x: direction > 0 ? 1000 : -1000,
       opacity: 0,
     }),
     center: {
       zIndex: 1,
       x: 0,
-      y: 0,
       opacity: 1,
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? 300 : -300,
-      y: 100,
+      x: direction < 0 ? 1000 : -1000,
       opacity: 0,
     }),
   };
@@ -182,9 +179,8 @@ export default function FlashcardsPage() {
                   animate="center"
                   exit="exit"
                   transition={{
-                    x: { type: "spring", stiffness: 500, damping: 45 },
-                    y: { type: "spring", stiffness: 300, damping: 20, mass: 1 },
-                    opacity: { duration: 0.1 },
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 },
                   }}
                   className="w-[800px] h-[500px] cursor-pointer"
                 >

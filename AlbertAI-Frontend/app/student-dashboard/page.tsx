@@ -39,6 +39,7 @@ import {
   Settings,
   LogOut,
   Bot,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -562,7 +563,10 @@ export default function StudentDashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+              <Card
+                className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
+                onClick={() => router.push("/student-dashboard/practice-test")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
                     Practice Tests
