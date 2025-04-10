@@ -519,7 +519,11 @@ export default function StudentDashboardPage() {
                   </p>
                 </CardContent>
               </Card>
-              <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
+
+              <Card
+                className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
+                onClick={() => router.push("/student-dashboard/true-false")}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
                     True/False Questions
@@ -535,6 +539,7 @@ export default function StudentDashboardPage() {
                   </p>
                 </CardContent>
               </Card>
+
               <Card className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
