@@ -92,16 +92,16 @@ export default function SignInPage() {
           <form onSubmit={onSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ufid" className="text-white">
-                  UFID
+                <Label htmlFor="email" className="text-white">
+                  Email
                 </Label>
                 <Input
-                  id="ufid"
-                  name="ufid"
-                  placeholder="Enter your UFID"
-                  type="text"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  type="email"
                   autoCapitalize="none"
-                  autoComplete="username"
+                  autoComplete="email"
                   autoCorrect="off"
                   disabled={isLoading}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"

@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/icons";
 import { ClassIdEntry } from "@/components/class-id-entry";
+import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [classId, setClassId] = useState("");
+  const router = useRouter();
 
   const handleClassIdSubmit = (id: string) => {
     setClassId(id);
@@ -27,9 +29,20 @@ export default function SignUpPage() {
     // Here you would typically send the form data, including the classId, to your backend
     console.log("Submitting with Class ID:", classId);
 
-    setTimeout(() => {
+    try {
+      // TODO: Add your sign-up API call here
+      // const response = await signUp(formData)
+
+      // Simulate successful sign-up
+      setTimeout(() => {
+        setIsLoading(false);
+        // Redirect to student dashboard after successful sign-up
+        router.push("/student-dashboard");
+      }, 3000);
+    } catch (error) {
+      console.error("Sign-up error:", error);
       setIsLoading(false);
-    }, 3000);
+    }
   }
 
   return (
@@ -109,15 +122,15 @@ export default function SignUpPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ufid" className="text-white">
-                        UFID
+                      <Label htmlFor="email" className="text-white">
+                        Email
                       </Label>
                       <Input
-                        id="ufid"
-                        placeholder="Enter your UFID"
-                        type="text"
+                        id="email"
+                        placeholder="Enter your email"
+                        type="email"
                         autoCapitalize="none"
-                        autoComplete="off"
+                        autoComplete="email"
                         autoCorrect="off"
                         disabled={isLoading}
                         className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"

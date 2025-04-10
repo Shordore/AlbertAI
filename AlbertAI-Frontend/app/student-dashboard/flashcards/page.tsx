@@ -187,10 +187,11 @@ export default function FlashcardsPage() {
                   <motion.div
                     animate={{ rotateY: isFlipped ? 180 : 0 }}
                     transition={{
-                      duration: 0.6,
+                      duration: 0.8,
                       type: "spring",
-                      stiffness: 500,
-                      damping: 30,
+                      stiffness: 300,
+                      damping: 20,
+                      mass: 1.2,
                     }}
                     className="w-full h-full preserve-3d"
                     onClick={handleFlip}
