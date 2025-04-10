@@ -80,16 +80,19 @@ export default function FlashcardsPage() {
   const slideVariants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 300 : -300,
+      y: -100,
       opacity: 0,
     }),
     center: {
       zIndex: 1,
       x: 0,
+      y: 0,
       opacity: 1,
     },
     exit: (direction: number) => ({
       zIndex: 0,
       x: direction < 0 ? 300 : -300,
+      y: 100,
       opacity: 0,
     }),
   };
@@ -180,6 +183,7 @@ export default function FlashcardsPage() {
                   exit="exit"
                   transition={{
                     x: { type: "spring", stiffness: 500, damping: 45 },
+                    y: { type: "spring", stiffness: 300, damping: 20, mass: 1 },
                     opacity: { duration: 0.1 },
                   }}
                   className="w-[800px] h-[500px] cursor-pointer"

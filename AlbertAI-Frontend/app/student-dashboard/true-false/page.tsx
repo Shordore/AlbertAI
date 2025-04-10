@@ -61,18 +61,62 @@ export default function TrueFalsePage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
-        handleSwipe(false);
         animate(x, -300, {
-          type: "spring",
-          stiffness: 400,
-          damping: 30,
+          type: "tween",
+          duration: 0.2,
+          ease: "easeOut",
+        }).then(() => {
+          setUserAnswer(false);
+          setShowFeedback(true);
+          setDirection(-1);
+
+          setTimeout(() => {
+            animate(x, 0, {
+              type: "spring",
+              stiffness: 200,
+              damping: 25,
+              velocity: 0,
+            });
+
+            setTimeout(() => {
+              if (currentIndex < questions.length - 1) {
+                setCurrentIndex((prev) => prev + 1);
+                setUserAnswer(null);
+                setShowFeedback(false);
+              } else {
+                setShowCompletionModal(true);
+              }
+            }, 800);
+          }, 200);
         });
       } else if (e.key === "ArrowRight") {
-        handleSwipe(true);
         animate(x, 300, {
-          type: "spring",
-          stiffness: 400,
-          damping: 30,
+          type: "tween",
+          duration: 0.2,
+          ease: "easeOut",
+        }).then(() => {
+          setUserAnswer(true);
+          setShowFeedback(true);
+          setDirection(1);
+
+          setTimeout(() => {
+            animate(x, 0, {
+              type: "spring",
+              stiffness: 200,
+              damping: 25,
+              velocity: 0,
+            });
+
+            setTimeout(() => {
+              if (currentIndex < questions.length - 1) {
+                setCurrentIndex((prev) => prev + 1);
+                setUserAnswer(null);
+                setShowFeedback(false);
+              } else {
+                setShowCompletionModal(true);
+              }
+            }, 800);
+          }, 200);
         });
       }
     };
@@ -95,11 +139,6 @@ export default function TrueFalsePage() {
     setDirection(isTrue ? 1 : -1);
 
     setTimeout(() => {
-      animate(x, 0, {
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-      });
       if (currentIndex < questions.length - 1) {
         setCurrentIndex((prev) => prev + 1);
         setUserAnswer(null);
@@ -219,7 +258,7 @@ export default function TrueFalsePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="text-2xl font-medium text-[#3B4CCA]"
+                  className="text-4xl font-medium text-[#3B4CCA]"
                 >
                   {userAnswer === questions[currentIndex].answer
                     ? "Correct!"
