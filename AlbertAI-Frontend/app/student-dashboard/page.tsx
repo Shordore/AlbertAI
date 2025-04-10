@@ -502,7 +502,7 @@ export default function StudentDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                onClick={() => router.push("/flashcards")}
+                onClick={() => router.push("/student-dashboard/flashcards")}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
