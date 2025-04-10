@@ -29,33 +29,20 @@ export const SparklesCore = ({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const updateDimensions = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
+    setDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
 
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-
-    return () => {
-      window.removeEventListener("resize", updateDimensions);
-    };
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let particles: Particle[] = [];
     let animationFrameId: number;
 
-    canvas.width = dimensions.width;
-    canvas.height = dimensions.height;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     class Particle {
       x: number;
@@ -65,8 +52,8 @@ export const SparklesCore = ({
       speedY: number;
 
       constructor() {
-        this.x = Math.random() * (canvas?.width ?? 0);
-        this.y = Math.random() * (canvas?.height ?? 0);
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
         this.size = Math.random() * (maxSize - minSize) + minSize;
         this.speedX = Math.random() * 0.5 - 0.25;
         this.speedY = Math.random() * 0.5 - 0.25;
@@ -76,12 +63,10 @@ export const SparklesCore = ({
         this.x += this.speedX;
         this.y += this.speedY;
 
-        if (canvas) {
-          if (this.x > canvas.width) this.x = 0;
-          if (this.x < 0) this.x = canvas.width;
-          if (this.y > canvas.height) this.y = 0;
-          if (this.y < 0) this.y = canvas.height;
-        }
+        if (this.x > canvas.width) this.x = 0;
+        if (this.x < 0) this.x = canvas.width;
+        if (this.y > canvas.height) this.y = 0;
+        if (this.y < 0) this.y = canvas.height;
 
         // Mouse interaction
         const dx = mousePosition.x - this.x;
@@ -125,18 +110,31 @@ export const SparklesCore = ({
     init();
     animate();
 
+    const handleResize = () => {
+      if (typeof window === "undefined") return;
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+      init();
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [
-    dimensions,
     maxSize,
     minSize,
     particleColor,
     particleDensity,
-    mousePosition,
+    mousePosition.x,
+    mousePosition.y,
   ]);
 
   return (
