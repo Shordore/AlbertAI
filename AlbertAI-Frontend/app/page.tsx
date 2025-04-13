@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import Navbar from "./components/navbar";
-import { SparklesCore } from "./components/sparkles-core";
-import { FloatingPaper } from "./components/floating-paper";
-import { RoboAnimation } from "./components/robo-animation";
+import Navbar from "@/components/navbar";
+import { SparklesCore } from "@/components/sparkles-core";
+import { FloatingPaper } from "@/components/floating-paper";
+import { RoboAnimation } from "@/components/robo-animation";
 
 export default function Home() {
   return (
