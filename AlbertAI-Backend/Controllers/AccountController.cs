@@ -177,7 +177,7 @@ namespace AlbertAI.Controllers
             // Save the changes to the database
             await _context.SaveChangesAsync();
 
-            return NoContent(); // Indicate success with no response body
+            return NoContent();
         }
     }
 }

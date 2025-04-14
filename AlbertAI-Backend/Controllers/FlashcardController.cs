@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using albertai.models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AlbertAI.Data;
 using AlbertAI.Models;
 
