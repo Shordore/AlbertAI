@@ -9,6 +9,10 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
   },
+  // API configuration
+  env: {
+    BACKEND_API_URL: 'http://localhost:5000',
+  },
   // Fix the 404 issues with chunks
   webpack: (config) => {
     config.optimization.moduleIds = "deterministic";

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AlbertAI.Services;
+using System.Threading.Tasks;
+using System;
 
 namespace AlbertAI.Controllers
 {
@@ -22,14 +24,22 @@ namespace AlbertAI.Controllers
                 return BadRequest("Message cannot be empty");
             }
 
-            var response = await _aiService.GetChatResponse(request.Message, request.ConversationHistory);
-            return Ok(new { response });
+            try
+            {
+                var response = await _aiService.GetChatResponse(request.Message, request.ConversationHistory ?? new List<ChatMessage>());
+                return Ok(new { response });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error in SendMessage: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
         }
 
         public class ChatRequest
         {
             public string Message { get; set; }
-            public List<ChatMessage> ConversationHistory { get; set; }
+            public List<ChatMessage> ConversationHistory { get; set; } = new List<ChatMessage>();
         }
     }
 } 

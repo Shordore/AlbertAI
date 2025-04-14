@@ -20,7 +20,12 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:3000")
+
+                .WithOrigins(
+                    "http://localhost:5173",
+                    "http://localhost:3000"  // Add Next.js development server
+                )
+
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
@@ -28,7 +33,7 @@ builder.Services.AddCors(options =>
 
 // Register your services
 builder.Services.AddScoped<Authenticator>();
-
+builder.Services.AddScoped<AIService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
