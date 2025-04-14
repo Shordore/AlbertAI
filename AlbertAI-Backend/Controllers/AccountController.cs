@@ -129,8 +129,6 @@ namespace AlbertAI.Controllers
             return Ok(response);
         }
 
-        // PUT: api/Account/me
-        // PUT: api/Account/me
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
@@ -177,7 +175,7 @@ namespace AlbertAI.Controllers
             // Save the changes to the database
             await _context.SaveChangesAsync();
 
-            return NoContent(); // Indicate success with no response body
+            return NoContent();
         }
     }
 }

@@ -16,14 +16,16 @@ builder.Configuration
 // Add CORS services and define a policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalhost5173",
+    options.AddPolicy("AllowLocalhost3000",
         builder =>
         {
             builder
+
                 .WithOrigins(
                     "http://localhost:5173",
                     "http://localhost:3000"  // Add Next.js development server
                 )
+
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
@@ -103,8 +105,7 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 app.UseRouting();
-
-app.UseCors("AllowLocalhost5173");
+app.UseCors("AllowLocalhost3000");
 
 app.UseAuthentication();
 app.UseAuthorization();

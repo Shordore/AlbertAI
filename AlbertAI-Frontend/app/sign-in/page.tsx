@@ -12,28 +12,55 @@ import { Icons } from "@/components/icons";
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+
+  // Use a fallback in case NEXT_PUBLIC_API_URL isn't defined
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
+    setErrorMsg("");
 
-    // Here you would typically send the form data to your backend for authentication
     const formData = new FormData(event.currentTarget);
-    console.log("Submitting form data:", Object.fromEntries(formData));
+    // Use "ufid" if that's what your backend expects instead of "email"
+    const ufid = formData.get("ufid");
+    const password = formData.get("password");
+
+    // Construct the request body matching your backend LoginRequest DTO
+    const requestBody = {
+      UFID: ufid,
+      Password: password
+    };
 
     try {
-      // TODO: Add your authentication API call here
-      // const response = await signIn(formData)
+      const response = await fetch(`${API_URL}/Account/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-      // Simulate successful authentication
-      setTimeout(() => {
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMsg(errorData.message || "Login failed");
         setIsLoading(false);
-        // Redirect to student dashboard after successful sign in
-        router.push("/student-dashboard");
-      }, 3000);
+        return;
+      }
+
+      const data = await response.json();
+      const token = data.Token;
+
+      // Store token as needed (here using localStorage)
+      localStorage.setItem("token", token);
+
+      setIsLoading(false);
+      router.push("/student-dashboard");
     } catch (error) {
       console.error("Authentication error:", error);
+      setErrorMsg("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   }
@@ -89,19 +116,22 @@ export default function SignInPage() {
               Sign in to your AlbertAI account
             </p>
           </div>
+          {errorMsg && (
+            <p className="text-center text-red-500">{errorMsg}</p>
+          )}
           <form onSubmit={onSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">
-                  Email
+                <Label htmlFor="ufid" className="text-white">
+                  UFID
                 </Label>
                 <Input
-                  id="email"
-                  name="email"
-                  placeholder="Enter your email"
-                  type="email"
+                  id="ufid"
+                  name="ufid"
+                  placeholder="Enter your UFID"
+                  type="text"
                   autoCapitalize="none"
-                  autoComplete="email"
+                  autoComplete="username"
                   autoCorrect="off"
                   disabled={isLoading}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"

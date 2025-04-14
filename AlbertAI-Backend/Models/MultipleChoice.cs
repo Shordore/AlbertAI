@@ -24,8 +24,6 @@ namespace albertai.models
         [Required]
         public int ClassCodeId { get; set; }
 
-        [ForeignKey("ClassCodeId")]
-        public ClassCode ClassCode { get; set; }
 
 
     }

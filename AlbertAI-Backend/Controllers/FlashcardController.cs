@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using albertai.models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AlbertAI.Data;
 using AlbertAI.Models;
 using AlbertAI.Services;
@@ -24,14 +20,14 @@ namespace AlbertAI.Controllers
             _aiService = aiService;
         }
 
-        // ✅ GET: Retrieve all flashcards
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetAllFlashcards()
         {
             return await _context.Flashcards.ToListAsync();
         }
 
-        // ✅ GET: Retrieve flashcards by ClassCodeId
+
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetFlashcardsByClass(int classCodeId)
         {
@@ -47,7 +43,7 @@ namespace AlbertAI.Controllers
             return Ok(flashcards);
         }
 
-        // ✅ POST: Add a new flashcard
+
         [HttpPost]
         public async Task<ActionResult<Flashcard>> CreateFlashcard([FromBody] Flashcard flashcard)
         {

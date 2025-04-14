@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using albertai.models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AlbertAI.Data;
 
 namespace AlbertAI.Controllers
@@ -19,14 +16,14 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
-        // ✅ GET: Retrieve all multiple choice questions
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MultipleChoice>>> GetAllQuestions()
         {
             return await _context.MultipleChoices.ToListAsync();
         }
 
-        // ✅ GET: Retrieve multiple choice questions by ClassCodeId
+
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<MultipleChoice>>> GetQuestionsByClass(int classCodeId)
         {
@@ -42,7 +39,7 @@ namespace AlbertAI.Controllers
             return Ok(questions);
         }
 
-        // ✅ POST: Add a new multiple choice question
+
         [HttpPost]
         public async Task<ActionResult<MultipleChoice>> CreateQuestion([FromBody] MultipleChoice question)
         {
