@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft, Search, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
+import { generateFlashcards } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface Flashcard {
   front: string;
   back: string;
 }
 
-// Sample flashcards data - this would typically come from your backend
-const flashcards: Flashcard[] = [
+// Default sample flashcards (will be replaced by API data)
+const sampleFlashcards: Flashcard[] = [
   {
     front: "Cell",
     back: "The basic structural and functional unit of all living organisms",
@@ -25,19 +28,64 @@ const flashcards: Flashcard[] = [
     front: "Mitochondria",
     back: "The powerhouse of the cell that produces energy in the form of ATP",
   },
-  // Add more flashcards as needed
 ];
 
 export default function FlashcardsPage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [totalCards] = useState(flashcards.length);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>(sampleFlashcards);
+  const [totalCards, setTotalCards] = useState(sampleFlashcards.length);
   const [direction, setDirection] = useState(0); // -1 for left, 1 for right
+  const [topic, setTopic] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handle fetch flashcards from API
+  const handleGenerateFlashcards = async () => {
+    if (!topic.trim() || isLoading) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Sending request to generate flashcards for topic: ${topic}`);
+      const response = await generateFlashcards(topic);
+      console.log('Response received:', response);
+      
+      // Format the response into flashcards
+      // This assumes the API returns flashcards in a specific format
+      const formattedFlashcards = Array.isArray(response) ? response.map((item: any) => ({
+        front: item.question || item.front,
+        back: item.answer || item.back
+      })) : [];
+      
+      if (formattedFlashcards.length > 0) {
+        setFlashcards(formattedFlashcards);
+        setTotalCards(formattedFlashcards.length);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+      } else {
+        // If no flashcards were returned, use the sample ones
+        setError("No valid flashcards were generated. Using sample flashcards instead.");
+        console.error("No valid flashcards in response:", response);
+      }
+    } catch (err) {
+      setError(`Error generating flashcards: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
+      console.error("Error generating flashcards:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Skip keyboard navigation if an input field is focused
+      if (document.activeElement?.tagName === 'INPUT') {
+        return;
+      }
+      
       if (e.key === "ArrowLeft") {
         setDirection(-1);
         handlePrevious();
@@ -126,20 +174,43 @@ export default function FlashcardsPage() {
               <X className="w-5 h-5" />
             </button>
           </div>
+          
+          {/* Add Flashcard Generator UI */}
+          <div className="px-4 pb-4 flex gap-2">
+            <Input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Enter a topic for flashcards..."
+              className="flex-1 bg-zinc-900 border-zinc-700 text-white"
+              onKeyPress={(e) => e.key === "Enter" && handleGenerateFlashcards()}
+            />
+            <Button
+              onClick={handleGenerateFlashcards}
+              className="bg-[#3B4CCA] hover:bg-blue-700 text-white"
+              disabled={isLoading}
+            >
+              {isLoading ? "Generating..." : <Plus className="w-5 h-5" />}
+            </Button>
+          </div>
+
+          {error && (
+            <div className="px-4 pb-2 text-red-500 text-sm">{error}</div>
+          )}
 
           <div className="px-4 pb-4">
             <h1 className="text-2xl font-semibold text-white mb-2">
-              Biology 101 - Exam 1
+              {topic ? `Flashcards: ${topic}` : "Sample Flashcards"}
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
               <span>
-                {currentIndex + 1} / {totalCards}
+                {flashcards.length > 0 ? `${currentIndex + 1} / ${totalCards}` : "No flashcards"}
               </span>
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#3B4CCA] transition-all duration-300 ease-out"
-                style={{ width: `${progress}%` }}
+                style={{ width: `${flashcards.length > 0 ? ((currentIndex + 1) / totalCards) * 100 : 0}%` }}
               />
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, Send } from "lucide-react";
+import { sendMessage } from "@/lib/api"; // Import the API function
 
 export default function ChatPage() {
   const [message, setMessage] = useState("");
@@ -14,34 +15,24 @@ export default function ChatPage() {
     if (!message.trim() || isLoading) return;
 
     // Add user message to chat
-    setMessages(prev => [...prev, { role: "user", content: message }]);
+    const newMessage = { role: "user" as const, content: message };
+    setMessages(prev => [...prev, newMessage]);
     setMessage("");
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_input: message,
-          conversation_history: messages
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.details || "Failed to get response from AI");
-      }
-
+      console.log('Sending message:', message);
+      // Use our API function instead of direct fetch
+      const response = await sendMessage(message, messages);
+      console.log('Received response:', response);
+      
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: data.response 
+        content: response 
       }]);
     } catch (error) {
       console.error("Error:", error);
+      // This block shouldn't run with our updated API function that doesn't throw errors
       setMessages(prev => [...prev, { 
         role: "assistant", 
         content: `I apologize, but I'm having trouble processing your request right now. Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again in a moment.` 
