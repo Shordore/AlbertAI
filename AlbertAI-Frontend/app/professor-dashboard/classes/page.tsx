@@ -94,6 +94,9 @@ export default function Classes() {
   const [courseCode, setCourseCode] = useState("");
   const [showCourseCode, setShowCourseCode] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [deleteClassId, setDeleteClassId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const classToDelete = classes.find((c) => c.id === deleteClassId);
 
   const generateCourseCode = () => {
     // Generate a random course code
@@ -412,7 +415,13 @@ export default function Classes() {
                           <Eye className="h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg">
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                          onClick={() => {
+                            setDeleteClassId(cls.id);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                           Delete Class
                         </DropdownMenuItem>
@@ -425,6 +434,53 @@ export default function Classes() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Delete Class
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete this class? This action cannot be
+              undone. All associated exams and student data will be permanently
+              deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6">
+            {classToDelete && (
+              <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
+                <div className="font-medium text-white">
+                  {classToDelete.name}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {classToDelete.students} students • {classToDelete.status}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Add delete logic here
+                  console.log("Deleting class:", deleteClassId);
+                  setIsDeleteDialogOpen(false);
+                  setDeleteClassId(null);
+                }}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete Class
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

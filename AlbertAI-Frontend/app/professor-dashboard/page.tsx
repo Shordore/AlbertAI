@@ -56,6 +56,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { NotificationDialog } from "@/components/notifications/notification-dialog";
 
 const classes = [
   {
@@ -81,12 +82,17 @@ const classes = [
   },
 ];
 
-// Mock data for the performance graph
+// Update the mock data to include more data points
 const performanceData = [
+  { date: "Jan 1", Biology: 82, Chemistry: 70, Physics: 62 },
+  { date: "Jan 10", Biology: 83, Chemistry: 71, Physics: 63 },
   { date: "Jan 20", Biology: 85, Chemistry: 72, Physics: 65 },
   { date: "Jan 31", Biology: 87, Chemistry: 75, Physics: 68 },
+  { date: "Feb 10", Biology: 88, Chemistry: 76, Physics: 70 },
   { date: "Feb 22", Biology: 89, Chemistry: 77, Physics: 72 },
+  { date: "Mar 5", Biology: 90, Chemistry: 78, Physics: 73 },
   { date: "Mar 15", Biology: 92, Chemistry: 79, Physics: 75 },
+  { date: "Mar 25", Biology: 93, Chemistry: 80, Physics: 77 },
   { date: "Mar 31", Biology: 94, Chemistry: 81, Physics: 78 },
   { date: "Apr 7", Biology: 96, Chemistry: 82, Physics: 81 },
 ];
@@ -265,6 +271,18 @@ export default function ProfessorDashboard() {
   const [className, setClassName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] =
+    useState(false);
+  const [deleteNotificationId, setDeleteNotificationId] = useState<
+    string | null
+  >(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteExamId, setDeleteExamId] = useState<string | null>(null);
+  const [isDeleteExamDialogOpen, setIsDeleteExamDialogOpen] = useState(false);
+  const notificationToDelete = notifications.find(
+    (n) => n.id === deleteNotificationId
+  );
+  const examToDelete = exams.find((e) => e.id === deleteExamId);
   const router = useRouter();
 
   // Filter and sort exams
@@ -406,6 +424,45 @@ export default function ProfessorDashboard() {
     router.push("/");
   };
 
+  // Add this function to filter data based on timeframe
+  const getFilteredPerformanceData = () => {
+    const now = new Date("2025-04-07"); // Using the last date in our dataset as reference
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    let daysToShow;
+    switch (selectedTimeframe) {
+      case "1 Month":
+        daysToShow = 30;
+        break;
+      case "3 Months":
+        daysToShow = 90;
+        break;
+      case "6 Months":
+        daysToShow = 180;
+        break;
+      case "1 Year":
+        daysToShow = 365;
+        break;
+      default:
+        daysToShow = 30;
+    }
+
+    return performanceData.filter((item) => {
+      const itemDate = new Date(item.date + ", 2025");
+      const diffDays = Math.ceil(
+        (now.getTime() - itemDate.getTime()) / msPerDay
+      );
+      return diffDays <= daysToShow;
+    });
+  };
+
+  const handleDeleteNotification = () => {
+    // Add delete logic here
+    console.log("Deleting notification:", deleteNotificationId);
+    setIsDeleteDialogOpen(false);
+    setDeleteNotificationId(null);
+  };
+
   return (
     <div className="min-h-screen bg-black">
       <div className="flex">
@@ -498,7 +555,7 @@ export default function ProfessorDashboard() {
                     </Link>
                   </CardTitle>
                   <CardDescription className="text-white/80">
-                    Manage your active classes
+                    Monitor class preparedness scores
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -521,7 +578,7 @@ export default function ProfessorDashboard() {
                         <div className="text-right">
                           <div className="font-medium">{cls.averageScore}%</div>
                           <div className="text-xs text-white/70">
-                            Avg. Score
+                            Class Preparedness
                           </div>
                         </div>
                       </Link>
@@ -625,29 +682,51 @@ export default function ProfessorDashboard() {
               </div>
               <div className="flex space-x-2 mb-6">
                 <Button
-                  variant="ghost"
-                  className="text-gray-400 hover:text-white hover:bg-transparent"
+                  variant={
+                    selectedTimeframe === "1 Month" ? "outline" : "ghost"
+                  }
+                  className={
+                    selectedTimeframe === "1 Month"
+                      ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                      : "text-gray-400 hover:text-white hover:bg-transparent"
+                  }
                   onClick={() => setSelectedTimeframe("1 Month")}
                 >
                   1 Month
                 </Button>
                 <Button
-                  variant="outline"
-                  className="bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                  variant={
+                    selectedTimeframe === "3 Months" ? "outline" : "ghost"
+                  }
+                  className={
+                    selectedTimeframe === "3 Months"
+                      ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                      : "text-gray-400 hover:text-white hover:bg-transparent"
+                  }
                   onClick={() => setSelectedTimeframe("3 Months")}
                 >
                   3 Months
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="text-gray-400 hover:text-white hover:bg-transparent"
+                  variant={
+                    selectedTimeframe === "6 Months" ? "outline" : "ghost"
+                  }
+                  className={
+                    selectedTimeframe === "6 Months"
+                      ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                      : "text-gray-400 hover:text-white hover:bg-transparent"
+                  }
                   onClick={() => setSelectedTimeframe("6 Months")}
                 >
                   6 Months
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="text-gray-400 hover:text-white hover:bg-transparent"
+                  variant={selectedTimeframe === "1 Year" ? "outline" : "ghost"}
+                  className={
+                    selectedTimeframe === "1 Year"
+                      ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                      : "text-gray-400 hover:text-white hover:bg-transparent"
+                  }
                   onClick={() => setSelectedTimeframe("1 Year")}
                 >
                   1 Year
@@ -655,7 +734,7 @@ export default function ProfessorDashboard() {
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={performanceData}>
+                  <LineChart data={getFilteredPerformanceData()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
                     <XAxis
                       dataKey="date"
@@ -970,7 +1049,7 @@ export default function ProfessorDashboard() {
                     <div className="col-span-2">Exam Name</div>
                     <div>Class</div>
                     <div>Date</div>
-                    <div>Avg. Score</div>
+                    <div>Class Preparedness</div>
                     <div>Status</div>
                     <div className="text-right">Actions</div>
                   </div>
@@ -1027,21 +1106,10 @@ export default function ProfessorDashboard() {
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                              onClick={() =>
-                                router.push(
-                                  `/professor-dashboard/exams/${exam.id}/edit`
-                                )
-                              }
-                            >
-                              <Edit className="h-4 w-4" />
-                              Edit Exam
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
                               onClick={() => {
-                                // Add delete confirmation logic here
-                                console.log("Delete exam:", exam.id);
+                                setDeleteExamId(exam.id);
+                                setIsDeleteExamDialogOpen(true);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1333,7 +1401,10 @@ export default function ProfessorDashboard() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <Button className="bg-[#3B4CCA] text-white hover:bg-[#3343b3] rounded-xl">
+                    <Button
+                      className="bg-[#3B4CCA] text-white hover:bg-[#3343b3] rounded-xl"
+                      onClick={() => setIsNotificationDialogOpen(true)}
+                    >
                       <svg
                         className="w-4 h-4 mr-2"
                         viewBox="0 0 24 24"
@@ -1382,33 +1453,16 @@ export default function ProfessorDashboard() {
                           : "—"}
                       </div>
                       <div className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-gray-400"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
-                          >
-                            <DropdownMenuItem className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg">
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg">
-                              <Edit className="h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg">
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                          variant="ghost"
+                          className="px-2 text-gray-400 hover:text-red-500"
+                          onClick={() => {
+                            setDeleteNotificationId(notification.id);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -1467,25 +1521,6 @@ export default function ProfessorDashboard() {
       </div>
 
       <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
-        <DialogTrigger asChild>
-          <Button className="bg-[#3B4CCA] text-white hover:bg-[#3343b3] rounded-xl">
-            <svg
-              className="w-4 h-4 mr-2"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Add New Class
-          </Button>
-        </DialogTrigger>
         <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
@@ -1548,6 +1583,102 @@ export default function ProfessorDashboard() {
                 className="bg-[#3B4CCA] text-white hover:bg-[#3343b3]"
               >
                 Add Class
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <NotificationDialog
+        open={isNotificationDialogOpen}
+        onOpenChange={setIsNotificationDialogOpen}
+      />
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Delete Notification
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete this notification? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6">
+            {notificationToDelete && (
+              <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
+                <div className="font-medium text-white">
+                  {notificationToDelete.title}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  Sent to {notificationToDelete.class} •{" "}
+                  {notificationToDelete.sentDate}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteNotification}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete Notification
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isDeleteExamDialogOpen}
+        onOpenChange={setIsDeleteExamDialogOpen}
+      >
+        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Delete Exam
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete this exam? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6">
+            {examToDelete && (
+              <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
+                <div className="font-medium text-white">
+                  {examToDelete.name}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {examToDelete.class} • {examToDelete.date}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteExamDialogOpen(false)}
+                className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Add delete logic here
+                  console.log("Deleting exam:", deleteExamId);
+                  setIsDeleteExamDialogOpen(false);
+                  setDeleteExamId(null);
+                }}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete Exam
               </Button>
             </div>
           </div>

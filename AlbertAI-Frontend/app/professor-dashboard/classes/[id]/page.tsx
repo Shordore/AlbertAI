@@ -25,6 +25,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import {
   Dialog,
@@ -34,6 +35,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { NotificationDialog } from "@/components/notifications/notification-dialog";
 
 interface Student {
   initials: string;
@@ -44,12 +46,17 @@ interface Student {
 }
 
 const performanceData = [
-  { date: "Jan 20", score1: 85, score2: 72, score3: 65 },
-  { date: "Jan 31", score1: 87, score2: 75, score3: 68 },
-  { date: "Feb 22", score1: 89, score2: 77, score3: 71 },
-  { date: "Mar 15", score1: 92, score2: 79, score3: 75 },
-  { date: "Mar 31", score1: 94, score2: 81, score3: 79 },
-  { date: "Apr 7", score1: 95, score2: 82, score3: 81 },
+  { date: "Jan 1", score: 82 },
+  { date: "Jan 10", score: 83 },
+  { date: "Jan 20", score: 85 },
+  { date: "Jan 31", score: 87 },
+  { date: "Feb 10", score: 88 },
+  { date: "Feb 22", score: 89 },
+  { date: "Mar 5", score: 90 },
+  { date: "Mar 15", score: 92 },
+  { date: "Mar 25", score: 93 },
+  { date: "Mar 31", score: 94 },
+  { date: "Apr 7", score: 96 },
 ];
 
 const students = [
@@ -85,18 +92,20 @@ const students = [
 
 const exams = [
   {
-    name: "Midterm Exam",
-    date: "Mar 15, 2025",
-    questions: 45,
-    averageScore: "78%",
-    status: "Completed",
-  },
-  {
+    id: "final-2025",
     name: "Final Exam",
     date: "Apr 20, 2025",
-    questions: 60,
-    averageScore: "—",
+    questions: 50,
+    averageScore: "-",
     status: "Scheduled",
+  },
+  {
+    id: "midterm-2025",
+    name: "Midterm Exam",
+    date: "Mar 15, 2025",
+    questions: 30,
+    averageScore: "78%",
+    status: "Completed",
   },
 ];
 
@@ -107,10 +116,19 @@ const sortOptions = [
   { label: "Date (Oldest)", value: "date-asc" },
 ];
 
+interface Exam {
+  id: string;
+  name: string;
+  date: string;
+  questions: number;
+  averageScore: string;
+  status: string;
+}
+
 export default function ClassDetails() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("Performance");
-  const [selectedTimeRange, setSelectedTimeRange] = useState("3 Months");
+  const [selectedTimeframe, setSelectedTimeframe] = useState("1 Month");
   const [selectedClass, setSelectedClass] = useState("All Classes");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
@@ -118,6 +136,11 @@ export default function ClassDetails() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedSort, setSelectedSort] = useState("date-desc");
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] =
+    useState(false);
+  const [deleteExamId, setDeleteExamId] = useState<string | null>(null);
+  const [isDeleteExamDialogOpen, setIsDeleteExamDialogOpen] = useState(false);
+  const examToDelete = exams.find((e) => e.id === deleteExamId);
 
   const handleDeleteStudent = (student: Student) => {
     setStudentToDelete(student);
@@ -149,6 +172,37 @@ export default function ClassDetails() {
   const filteredExams = sortedExams.filter((exam) =>
     exam.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getFilteredPerformanceData = () => {
+    const now = new Date("2025-04-07"); // Using the last date in our dataset as reference
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    let daysToShow;
+    switch (selectedTimeframe) {
+      case "1 Month":
+        daysToShow = 30;
+        break;
+      case "3 Months":
+        daysToShow = 90;
+        break;
+      case "6 Months":
+        daysToShow = 180;
+        break;
+      case "1 Year":
+        daysToShow = 365;
+        break;
+      default:
+        daysToShow = 30;
+    }
+
+    return performanceData.filter((item) => {
+      const itemDate = new Date(item.date + ", 2025");
+      const diffDays = Math.ceil(
+        (now.getTime() - itemDate.getTime()) / msPerDay
+      );
+      return diffDays <= daysToShow;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -247,6 +301,7 @@ export default function ClassDetails() {
               <Button
                 variant="outline"
                 className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
+                onClick={() => setIsNotificationDialogOpen(true)}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Send Notification
@@ -310,131 +365,103 @@ export default function ClassDetails() {
                         Performance Over Time
                       </h3>
                       <p className="text-gray-400">
-                        Average scores across all classes over time
+                        Average scores across all students over time
                       </p>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
-                        >
-                          {selectedClass}
-                          <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="bg-[#1F1F1F] border border-[#333333] text-white">
-                        <DropdownMenuItem
-                          onClick={() => setSelectedClass("All Classes")}
-                          className="hover:bg-[#2a2a2a] cursor-pointer"
-                        >
-                          All Classes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSelectedClass("Biology 101")}
-                          className="hover:bg-[#2a2a2a] cursor-pointer"
-                        >
-                          Biology 101
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSelectedClass("Chemistry 201")}
-                          className="hover:bg-[#2a2a2a] cursor-pointer"
-                        >
-                          Chemistry 201
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
 
-                  <div className="flex gap-2 mb-6">
-                    {["1 Month", "3 Months", "6 Months", "1 Year"].map(
-                      (range) => (
-                        <Button
-                          key={range}
-                          variant="ghost"
-                          className={`px-4 py-2 text-sm rounded-lg ${
-                            selectedTimeRange === range
-                              ? "bg-[#1F1F1F] text-white"
-                              : "text-gray-400 hover:text-white hover:bg-[#1F1F1F]"
-                          }`}
-                          onClick={() => setSelectedTimeRange(range)}
-                        >
-                          {range}
-                        </Button>
-                      )
-                    )}
-                  </div>
-
-                  <div className="h-[400px] w-full">
-                    <LineChart
-                      width={1200}
-                      height={400}
-                      data={performanceData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  <div className="flex space-x-2 mb-6">
+                    <Button
+                      variant={
+                        selectedTimeframe === "1 Month" ? "outline" : "ghost"
+                      }
+                      className={
+                        selectedTimeframe === "1 Month"
+                          ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                          : "text-gray-400 hover:text-white hover:bg-transparent"
+                      }
+                      onClick={() => setSelectedTimeframe("1 Month")}
                     >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#1F1F1F"
-                        vertical={false}
-                        horizontalPoints={[50, 65, 80, 100]}
-                      />
-                      <XAxis
-                        dataKey="date"
-                        stroke="#6B7280"
-                        axisLine={false}
-                        tickLine={false}
-                        dy={10}
-                        tick={{ fill: "#6B7280", fontSize: 12 }}
-                      />
-                      <YAxis
-                        stroke="#6B7280"
-                        domain={[50, 100]}
-                        ticks={[50, 65, 80, 100]}
-                        tickFormatter={(value) => `${value}%`}
-                        axisLine={false}
-                        tickLine={false}
-                        dx={-10}
-                        tick={{ fill: "#6B7280", fontSize: 12 }}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#1F1F1F",
-                          border: "none",
-                          borderRadius: "0.5rem",
-                          color: "#fff",
-                          padding: "8px 12px",
-                        }}
-                        itemStyle={{ color: "#fff" }}
-                        labelStyle={{ color: "#6B7280", marginBottom: "4px" }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="score1"
-                        stroke="#3B4CCA"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: "#3B4CCA", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#3B4CCA", strokeWidth: 0 }}
-                        isAnimationActive={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="score2"
-                        stroke="#D97706"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: "#D97706", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#D97706", strokeWidth: 0 }}
-                        isAnimationActive={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="score3"
-                        stroke="#10B981"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: "#10B981", strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: "#10B981", strokeWidth: 0 }}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
+                      1 Month
+                    </Button>
+                    <Button
+                      variant={
+                        selectedTimeframe === "3 Months" ? "outline" : "ghost"
+                      }
+                      className={
+                        selectedTimeframe === "3 Months"
+                          ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                          : "text-gray-400 hover:text-white hover:bg-transparent"
+                      }
+                      onClick={() => setSelectedTimeframe("3 Months")}
+                    >
+                      3 Months
+                    </Button>
+                    <Button
+                      variant={
+                        selectedTimeframe === "6 Months" ? "outline" : "ghost"
+                      }
+                      className={
+                        selectedTimeframe === "6 Months"
+                          ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                          : "text-gray-400 hover:text-white hover:bg-transparent"
+                      }
+                      onClick={() => setSelectedTimeframe("6 Months")}
+                    >
+                      6 Months
+                    </Button>
+                    <Button
+                      variant={
+                        selectedTimeframe === "1 Year" ? "outline" : "ghost"
+                      }
+                      className={
+                        selectedTimeframe === "1 Year"
+                          ? "bg-[#222222] text-white border-none hover:bg-[#2a2a2a]"
+                          : "text-gray-400 hover:text-white hover:bg-transparent"
+                      }
+                      onClick={() => setSelectedTimeframe("1 Year")}
+                    >
+                      1 Year
+                    </Button>
+                  </div>
+
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={getFilteredPerformanceData()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1F1F1F" />
+                        <XAxis
+                          dataKey="date"
+                          stroke="#666"
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          stroke="#666"
+                          axisLine={false}
+                          tickLine={false}
+                          domain={[50, 100]}
+                          ticks={[50, 65, 80, 100]}
+                          tickFormatter={(value) => `${value}%`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#111111",
+                            border: "1px solid #333333",
+                            borderRadius: "8px",
+                          }}
+                          itemStyle={{ color: "#ffffff" }}
+                          labelStyle={{ color: "#999999" }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="score"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          dot={{ fill: "#3b82f6", r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               )}
@@ -656,7 +683,7 @@ export default function ClassDetails() {
                           fill="none"
                         >
                           <path
-                            d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z"
+                            d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.2929 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z"
                             stroke="currentColor"
                             strokeWidth="2"
                             strokeLinecap="round"
@@ -716,7 +743,7 @@ export default function ClassDetails() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="bg-[#111111] border border-[#222222] rounded-xl p-1 min-w-[160px]"
+                            className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
                           >
                             <DropdownMenuItem
                               className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
@@ -730,21 +757,10 @@ export default function ClassDetails() {
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                              onClick={() =>
-                                router.push(
-                                  `/professor-dashboard/exams/${exam.name}/edit`
-                                )
-                              }
-                            >
-                              <Edit className="h-4 w-4" />
-                              Edit Exam
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
                               onClick={() => {
-                                // Add delete confirmation logic here
-                                console.log("Delete exam:", exam.name);
+                                setDeleteExamId(exam.name);
+                                setIsDeleteExamDialogOpen(true);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -811,6 +827,61 @@ export default function ClassDetails() {
               Remove Student
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <NotificationDialog
+        open={isNotificationDialogOpen}
+        onOpenChange={setIsNotificationDialogOpen}
+      />
+
+      <Dialog
+        open={isDeleteExamDialogOpen}
+        onOpenChange={setIsDeleteExamDialogOpen}
+      >
+        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Delete Exam
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete this exam? This action cannot be
+              undone. All student responses and scores will be permanently
+              deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6">
+            {examToDelete && (
+              <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
+                <div className="font-medium text-white">
+                  {examToDelete.name}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {examToDelete.date} • {examToDelete.status}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteExamDialogOpen(false)}
+                className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Add delete logic here
+                  console.log("Deleting exam:", deleteExamId);
+                  setIsDeleteExamDialogOpen(false);
+                  setDeleteExamId(null);
+                }}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete Exam
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
