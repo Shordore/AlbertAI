@@ -25,7 +25,5 @@ namespace AlbertAI.Models
 
         public int ClassCodeId { get; set; } // Foreign key to ClassCode
 
-        [ForeignKey("ClassCodeId")]
-        public ClassCode ClassCode { get; set; }
     }
 }

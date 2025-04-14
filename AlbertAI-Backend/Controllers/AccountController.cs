@@ -129,8 +129,6 @@ namespace AlbertAI.Controllers
             return Ok(response);
         }
 
-        // PUT: api/Account/me
-        // PUT: api/Account/me
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {

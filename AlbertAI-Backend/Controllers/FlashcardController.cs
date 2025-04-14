@@ -16,14 +16,14 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
-        // ✅ GET: Retrieve all flashcards
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetAllFlashcards()
         {
             return await _context.Flashcards.ToListAsync();
         }
 
-        // ✅ GET: Retrieve flashcards by ClassCodeId
+
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetFlashcardsByClass(int classCodeId)
         {
@@ -39,7 +39,7 @@ namespace AlbertAI.Controllers
             return Ok(flashcards);
         }
 
-        // ✅ POST: Add a new flashcard
+
         [HttpPost]
         public async Task<ActionResult<Flashcard>> CreateFlashcard([FromBody] Flashcard flashcard)
         {

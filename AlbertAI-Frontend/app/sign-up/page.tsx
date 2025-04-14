@@ -2,45 +2,63 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/components/icons";
-import { ClassIdEntry } from "@/components/class-id-entry";
-import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [classId, setClassId] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
 
-  const handleClassIdSubmit = (id: string) => {
-    setClassId(id);
-    setStep(2);
-  };
+  // Use the environment variable for the API base URL
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
+    setErrorMsg("");
 
-    // Here you would typically send the form data, including the classId, to your backend
-    console.log("Submitting with Class ID:", classId);
+    const formData = new FormData(event.currentTarget);
+    const UFID = formData.get("ufid");
+    const password = formData.get("password");
+    const name = formData.get("name");
+    const classCode = formData.get("classCode");
+
+    // Construct the JSON body matching your backend RegisterRequest DTO
+    const requestBody = {
+      UFID: UFID,
+      Password: password,
+      Name: name,
+      classCode: classCode
+    };
 
     try {
-      // TODO: Add your sign-up API call here
-      // const response = await signUp(formData)
+      const response = await fetch(`${API_URL}/Account/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-      // Simulate successful sign-up
-      setTimeout(() => {
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMsg(errorData.message || "Registration failed");
         setIsLoading(false);
-        // Redirect to student dashboard after successful sign-up
-        router.push("/student-dashboard");
-      }, 3000);
+        return;
+      }
+
+      // If registration is successful, redirect to the sign-in page.
+      setIsLoading(false);
+      router.push("/sign-in");
     } catch (error) {
-      console.error("Sign-up error:", error);
+      console.error("Registration error:", error);
+      setErrorMsg("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   }
@@ -72,111 +90,117 @@ export default function SignUpPage() {
               Sign In
             </Button>
           </Link>
-          <Link href="/join-class">
-            <Button className="bg-blue-600 text-white hover:bg-blue-700 rounded">
-              Join Class
-            </Button>
-          </Link>
         </div>
       </nav>
 
       {/* Sign Up Form */}
       <div className="relative z-10 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-6 border border-white/20 p-8 rounded-xl">
-          <AnimatePresence mode="wait">
-            {step === 1 ? (
-              <ClassIdEntry key="step1" onNext={handleClassIdSubmit} />
-            ) : (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                <div className="text-center">
-                  <h2 className="text-4xl font-bold tracking-tight text-white">
-                    Create your account
-                  </h2>
-                  <p className="mt-2 text-lg text-gray-400">
-                    Start transforming your learning experience with AI
-                  </p>
-                </div>
-                <form onSubmit={onSubmit} className="mt-8 space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-white">
-                        Full Name
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="Enter your full name"
-                        type="text"
-                        autoCapitalize="none"
-                        autoComplete="name"
-                        autoCorrect="off"
-                        disabled={isLoading}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-white">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        placeholder="Enter your email"
-                        type="email"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        autoCorrect="off"
-                        disabled={isLoading}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-white">
-                        Password
-                      </Label>
-                      <Input
-                        id="password"
-                        placeholder="Enter your password"
-                        type="password"
-                        autoCapitalize="none"
-                        autoComplete="new-password"
-                        disabled={isLoading}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded"
-                    disabled={isLoading}
-                  >
-                    {isLoading && (
-                      <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Sign Up
-                  </Button>
-                </form>
-                <p className="text-center text-sm text-gray-400">
-                  Already have an account?{" "}
-                  <Link
-                    href="/sign-in"
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    Sign in
-                  </Link>
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md space-y-6 border border-white/20 rounded-xl p-8"
+        >
+          <div className="text-center">
+            <h2 className="text-4xl font-bold tracking-tight text-white">
+              Join AlbertAI
+            </h2>
+            <p className="mt-2 text-lg text-gray-400">
+              Create your account to get started
+            </p>
+          </div>
+          {errorMsg && <p className="text-center text-red-500">{errorMsg}</p>}
+          <form onSubmit={onSubmit} className="mt-8 space-y-6">
+            <div className="space-y-4">
+              {/* Name Field */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-white">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Enter your name"
+                  type="text"
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  disabled={isLoading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              {/* UFID Field */}
+              <div className="space-y-2">
+                <Label htmlFor="ufid" className="text-white">
+                  UFID
+                </Label>
+                <Input
+                  id="ufid"
+                  name="ufid"
+                  placeholder="Enter your UFID"
+                  type="text"
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  disabled={isLoading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-white">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  name="password"
+                  placeholder="Enter a password"
+                  type="password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  disabled={isLoading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              {/* Course Code Field */}
+              <div className="space-y-2">
+                <Label htmlFor="classCode" className="text-white">
+                  Course Code
+                </Label>
+                <Input
+                  id="classCode"
+                  name="classCode"
+                  placeholder="Enter your course code"
+                  type="text"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  disabled={isLoading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded"
+              disabled={isLoading}
+            >
+              {isLoading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Sign Up
+            </Button>
+          </form>
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-400">
+              Already have an account?{" "}
+              <Link href="/sign-in" className="text-blue-400 hover:text-blue-300">
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
