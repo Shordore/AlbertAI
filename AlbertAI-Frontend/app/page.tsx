@@ -3,6 +3,7 @@ import Navbar from "@/components/navbar";
 import { SparklesCore } from "@/components/sparkles-core";
 import { FloatingPaper } from "@/components/floating-paper";
 import { RoboAnimation } from "@/components/robo-animation";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -32,8 +33,11 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-lg px-8 py-6 rounded">
-              Upload Study Materials
+            <Button
+              asChild
+              className="bg-[#1E40AF] hover:bg-[#1E3A8A] text-lg px-8 py-6 rounded"
+            >
+              <Link href="/professor-onboarding">Upload Study Materials</Link>
             </Button>
             <Button
               variant="outline"

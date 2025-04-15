@@ -5,6 +5,12 @@ import {
   CheckSquare,
   ListChecks,
   FileText,
+  LayoutDashboard,
+  Bell,
+  Settings,
+  GraduationCap,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export const Icons = {
@@ -14,4 +20,10 @@ export const Icons = {
   check: CheckSquare,
   listChecks: ListChecks,
   fileText: FileText,
+  dashboard: LayoutDashboard,
+  bell: Bell,
+  settings: Settings,
+  exam: GraduationCap,
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
 };
