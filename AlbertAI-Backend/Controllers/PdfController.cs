@@ -19,7 +19,7 @@ namespace AlbertAI.Controllers
                 return BadRequest("No files were uploaded.");
             }
 
-            var pdfTexts = new List<string>();
+            var combinedText = new StringBuilder();
 
             foreach (var file in files)
             {
@@ -35,21 +35,21 @@ namespace AlbertAI.Controllers
                     // Parse PDF into text
                     using (var pdfDocument = PdfDocument.Open(memoryStream.ToArray()))
                     {
-                        var textBuilder = new StringBuilder();
                         foreach (var page in pdfDocument.GetPages())
                         {
-                            textBuilder.AppendLine(page.Text);
+                            combinedText.AppendLine(page.Text);
                         }
-                        pdfTexts.Add(textBuilder.ToString());
+                        // Add a separator between PDFs
+                        combinedText.AppendLine("\n--- End of PDF ---\n");
                     }
                 }
             }
 
-            // Return the extracted text from all PDFs
+            // Return the combined text from all PDFs
             return Ok(new { 
                 message = "PDFs processed successfully", 
-                count = pdfTexts.Count,
-                texts = pdfTexts
+                count = files.Count,
+                text = combinedText.ToString()
             });
         }
     }
