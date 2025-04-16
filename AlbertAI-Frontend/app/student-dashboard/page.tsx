@@ -563,7 +563,15 @@ onClick={() => {
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                onClick={() => router.push("/student-dashboard/true-false")}
+                
+                onClick={() => {
+                  if (selectedCourse) {
+                    router.push(`/student-dashboard/true-false?class=${encodeURIComponent(selectedCourse)}`);
+                  } else {
+                    router.push(`/student-dashboard/true-false`);
+                  }
+                }}
+                
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
@@ -604,18 +612,13 @@ onClick={() => {
                 onClick={() => router.push("/student-dashboard/practice-test")}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                    Practice Tests
-                  </CardTitle>
                   <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    12
+                  Practice Tests
                   </div>
-                  <p className="text-xs text-zinc-500 group-hover:text-black">
-                    +2 since last week
-                  </p>
+                  
                 </CardContent>
               </Card>
             </div>

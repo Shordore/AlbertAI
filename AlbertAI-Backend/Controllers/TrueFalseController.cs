@@ -65,6 +65,32 @@ namespace AlbertAI.Controllers
             return NoContent();
         }
 
+
+        [HttpGet("bycode")]
+        public async Task<IActionResult> GetQuestionsByClassCode([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            var questions = await _context.TrueFalses
+                .Join(_context.ClassCodes,
+                      tf => tf.ClassCodeId,
+                      cc => cc.Id,
+                      (tf, cc) => new { TrueFalse = tf, ClassCode = cc })
+                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
+                .Select(x => x.TrueFalse)
+                .ToListAsync();
+
+            if (questions == null || !questions.Any())
+            {
+                return NotFound(new { message = "No questions found for this class code." });
+            }
+
+            return Ok(questions);
+        }
+
         [HttpPost("{id}/review")]
         public async Task<IActionResult> ReviewTrueFalseQuestion(int id, [FromBody] bool wasCorrect)
         {
@@ -79,76 +105,4 @@ namespace AlbertAI.Controllers
         }
     }
 }
-
-//     // Uncomment the in-memory version
-//     [ApiController]
-//     [Route("api/[controller]")]
-//     public class TrueFalseController : ControllerBase
-//     {
-//         // In-memory storage
-//         private static readonly List<TrueFalse> _questions = new List<TrueFalse>();
-//         private static int _nextId = 1;
-
-//         [HttpGet]
-//         public ActionResult<IEnumerable<TrueFalse>> GetQuestions()
-//         {
-//             return Ok(_questions);
-//         }
-
-//         [HttpGet("{id}")]
-//         public ActionResult<TrueFalse> GetQuestion(int id)
-//         {
-//             var question = _questions.FirstOrDefault(q => q.Id == id);
-//             if (question == null)
-//                 return NotFound();
-//             return question;
-//         }
-
-//         [HttpPost]
-//         public ActionResult<TrueFalse> CreateQuestion(TrueFalse question)
-//         {
-//             question.Id = _nextId++;
-//             _questions.Add(question);
-//             return CreatedAtAction(nameof(GetQuestion), new { id = question.Id }, question);
-//         }
-
-//         [HttpGet("random")]
-//         public ActionResult<TrueFalse> GetRandomQuestion()
-//         {
-//             if (_questions.Count == 0)
-//                 return NotFound("No questions available");
-
-//             var random = new Random();
-//             var index = random.Next(0, _questions.Count);
-//             return Ok(_questions[index]);
-//         }
-
-//         [HttpDelete("{id}")]
-//         public ActionResult DeleteQuestion(int id)
-//         {
-//             var question = _questions.FirstOrDefault(q => q.Id == id);
-//             if (question == null)
-//                 return NotFound();
-
-//             _questions.Remove(question);
-//             return NoContent();
-//         }
-
-//         [HttpPost("{id}/review")]
-//         public ActionResult ReviewQuestion(int id, [FromBody] bool wasCorrect)
-//         {
-//             var question = _questions.FirstOrDefault(q => q.Id == id);
-//             if (question == null)
-//                 return NotFound();
-
-//             // Add review logic here
-
-//             return NoContent();
-//         }
-//     }
-// }
-
-
-
-
 
