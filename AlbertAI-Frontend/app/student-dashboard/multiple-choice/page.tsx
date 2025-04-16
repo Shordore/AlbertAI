@@ -2,69 +2,104 @@
 
 import { useState, useEffect } from "react";
 import { X, ChevronLeft, RotateCcw } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
 
+// This interface reflects your new data format.
 interface MultipleChoiceQuestion {
+  id: number;
   question: string;
-  options: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
-  };
-  correctAnswer: "A" | "B" | "C" | "D";
+  choices: string[];
+  answer: string;
+  category: string;
+  classCodeId: number;
 }
-
-const questions: MultipleChoiceQuestion[] = [
-  {
-    question: "What is the powerhouse of the cell?",
-    options: {
-      A: "Nucleus",
-      B: "Mitochondria",
-      C: "Ribosome",
-      D: "Endoplasmic Reticulum",
-    },
-    correctAnswer: "B",
-  },
-  {
-    question: "Which of these is NOT a type of RNA?",
-    options: {
-      A: "mRNA",
-      B: "tRNA",
-      C: "rRNA",
-      D: "zRNA",
-    },
-    correctAnswer: "D",
-  },
-  {
-    question: "What is the process by which plants make their own food?",
-    options: {
-      A: "Respiration",
-      B: "Photosynthesis",
-      C: "Transpiration",
-      D: "Digestion",
-    },
-    correctAnswer: "B",
-  },
-];
 
 export default function MultipleChoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const className = searchParams.get("class"); // e.g. "Biology 101"
+
+  // State for multiple choice questions and page logic
+  const [questions, setQuestions] = useState<MultipleChoiceQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState<"A" | "B" | "C" | "D" | null>(
-    null
-  );
+  // We'll store userAnswer as the index of the chosen option
+  const [userAnswer, setUserAnswer] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const progress = ((currentIndex + 1) / questions.length) * 100;
+  // For the progress bar
+  const progress = questions.length > 0 
+    ? ((currentIndex + 1) / questions.length) * 100 
+    : 0;
 
-  const handleAnswer = (answer: "A" | "B" | "C" | "D") => {
-    setUserAnswer(answer);
+  // 1) Helper function to get the class code from the class name
+  const fetchClassCode = async (className: string): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(className)}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch class code");
+      }
+      const data = await response.json();
+      // The API returns: { classCodeId: "BIO101" } (for example)
+      return data.classCodeId;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error fetching class code");
+      return null;
+    }
+  };
+
+  // 2) Helper function to get MC questions from your new endpoint
+  const fetchMultipleChoiceQuestions = async (classCode: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/multiplechoice/bycode?classCode=${encodeURIComponent(classCode)}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch multiple choice questions.");
+      }
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setQuestions(data);
+        setCurrentIndex(0);
+        setUserAnswer(null);
+        setShowFeedback(false);
+      } else {
+        setError("No questions available for the selected class.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error fetching questions.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3) useEffect: first fetch the class code from the name, then fetch MC questions
+  useEffect(() => {
+    if (className) {
+      fetchClassCode(className).then((classCode) => {
+        if (classCode) {
+          fetchMultipleChoiceQuestions(classCode);
+        } else {
+          setError("Class code not found for the selected class.");
+        }
+      });
+    }
+  }, [className]);
+
+  // Called when the user clicks on a choice
+  const handleAnswer = (choiceIndex: number) => {
+    setUserAnswer(choiceIndex);
     setShowFeedback(true);
 
+    // Delay to show feedback (Correct/Incorrect), then move to next question
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
         setCurrentIndex((prev) => prev + 1);
@@ -76,11 +111,20 @@ export default function MultipleChoicePage() {
     }, 1500);
   };
 
+  // When the user finishes or wants to restart
   const handleRestart = () => {
     setCurrentIndex(0);
     setShowCompletionModal(false);
     setUserAnswer(null);
     setShowFeedback(false);
+  };
+
+  // We can label choices with letters A, B, C, D, etc.
+  const letters = ["A", "B", "C", "D", "E"];
+
+  // Are we correct? Compare the chosen text to the question's `answer` string
+  const isCorrect = (choiceIndex: number) => {
+    return questions[currentIndex].choices[choiceIndex] === questions[currentIndex].answer;
   };
 
   return (
@@ -157,11 +201,12 @@ export default function MultipleChoicePage() {
 
           <div className="px-4 pb-4">
             <h1 className="text-2xl font-semibold text-white mb-2">
-              Biology 101 - Chapter 1
+              {/* You can adapt this to display className or question category */}
+              {className || "Multiple Choice Practice"}
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
               <span>
-                {currentIndex + 1} / {questions.length}
+                {questions.length > 0 ? `${currentIndex + 1} / ${questions.length}` : "0 / 0"}
               </span>
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -173,78 +218,89 @@ export default function MultipleChoicePage() {
           </div>
         </div>
 
-        {/* Question Area */}
+        {/* Main Question Area */}
         <div className="flex-1 flex flex-col items-center justify-center p-6">
-          <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
-            {/* Feedback Message */}
-            <AnimatePresence mode="wait">
-              {showFeedback && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="text-4xl font-medium text-[#3B4CCA]"
-                >
-                  {userAnswer === questions[currentIndex].correctAnswer
-                    ? "Correct!"
-                    : `Incorrect. The correct answer was ${questions[currentIndex].correctAnswer}`}
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* If there's an error or no questions, display a message */}
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          {isLoading && <p className="text-white mb-4">Loading...</p>}
 
-            {/* Question Card */}
-            <motion.div
-              key={currentIndex}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 50 }}
-              className="w-full rounded-xl border border-[#222222] bg-[#111111] p-8 mb-8"
-            >
-              <div className="text-3xl font-medium text-white text-center mb-8">
-                {questions[currentIndex].question}
-              </div>
+          {questions.length > 0 && currentIndex < questions.length && (
+            <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+              {/* Feedback Message */}
+              <AnimatePresence mode="wait">
+                {showFeedback && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="text-4xl font-medium text-[#3B4CCA]"
+                  >
+                    {isCorrect(userAnswer!) ? "Correct!" : `Incorrect. The correct answer was "${questions[currentIndex].answer}"`}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Answer Options */}
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(questions[currentIndex].options).map(
-                  ([key, value]) => (
-                    <button
-                      key={key}
-                      onClick={() => handleAnswer(key as "A" | "B" | "C" | "D")}
-                      disabled={showFeedback}
-                      className={`p-4 rounded-lg border ${
-                        showFeedback
-                          ? key === questions[currentIndex].correctAnswer
+              {/* Question Card */}
+              <motion.div
+                key={currentIndex}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 50 }}
+                className="w-full rounded-xl border border-[#222222] bg-[#111111] p-8 mb-8"
+              >
+                {/* Display the question text */}
+                <div className="text-3xl font-medium text-white text-center mb-8">
+                  {questions[currentIndex].question}
+                </div>
+
+                {/* Render the answer choices */}
+                <div className="grid grid-cols-2 gap-4">
+                  {questions[currentIndex].choices.map((choice, i) => {
+                    // Are we in feedback mode, and is this the correct or chosen choice?
+                    const isChoiceCorrect = showFeedback && isCorrect(i);
+                    const isChoiceSelected = showFeedback && userAnswer === i && !isChoiceCorrect;
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => handleAnswer(i)}
+                        disabled={showFeedback} // disable during feedback
+                        className={`p-4 rounded-lg border ${
+                          isChoiceCorrect
                             ? "border-green-500 bg-green-500/10"
-                            : userAnswer === key
+                            : isChoiceSelected
                             ? "border-red-500 bg-red-500/10"
-                            : "border-zinc-800"
-                          : "border-zinc-800 hover:border-zinc-700"
-                      } transition-colors`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            showFeedback
-                              ? key === questions[currentIndex].correctAnswer
+                            : "border-zinc-800 hover:border-zinc-700"
+                        } transition-colors`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isChoiceCorrect
                                 ? "bg-green-500"
-                                : userAnswer === key
+                                : isChoiceSelected
                                 ? "bg-red-500"
                                 : "bg-zinc-800"
-                              : "bg-zinc-800"
-                          }`}
-                        >
-                          <span className="text-white font-medium">{key}</span>
+                            }`}
+                          >
+                            {/* Label each choice with A, B, C, D, etc. */}
+                            <span className="text-white font-medium">{letters[i]}</span>
+                          </div>
+                          <span className="text-white text-left">{choice}</span>
                         </div>
-                        <span className="text-white text-left">{value}</span>
-                      </div>
-                    </button>
-                  )
-                )}
-              </div>
-            </motion.div>
-          </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* If questions is empty or we've handled all questions, you might show placeholders */}
+          {questions.length === 0 && !error && !isLoading && (
+            <p className="text-white text-center">No questions to display.</p>
+          )}
         </div>
       </div>
     </div>
