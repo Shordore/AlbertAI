@@ -1,4 +1,8 @@
+
+
 "use client";
+
+
 
 import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
@@ -43,7 +47,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const performanceData = [
@@ -207,6 +211,36 @@ export default function StudentDashboardPage() {
   });
   const router = useRouter();
 
+  const [currentUser, setCurrentUser] = useState<{ name: string; classes: string[] } | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  useEffect(() => {
+    if (currentUser && currentUser.classes && currentUser.classes.length > 0 && !selectedCourse) {
+      setSelectedCourse(currentUser.classes[0]);
+    }
+  }, [currentUser, selectedCourse]);
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/Account/me`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setCurrentUser(data))
+      .catch((err) => console.error(err));
+  }, []);
+
+  function getInitials(fullName?: string): string {
+    if (!fullName) return "";
+    const parts = fullName.trim().split(" ");
+    if (parts.length === 0) return "";
+    // Take the first character of the first word.
+    const firstInitial = parts[0].charAt(0).toUpperCase();
+    // If there's more than one word, take the first character of the last word.
+    const lastInitial = parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
+    return `${firstInitial}${lastInitial}`;
+  }
+
   const sortedStudyHistory = [...studyHistory].sort(
     (a: StudyHistoryItem, b: StudyHistoryItem) => {
       if (sortConfig.key === "score") {
@@ -284,9 +318,11 @@ export default function StudentDashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                    <span className="text-black font-medium text-lg">JK</span>
+                  <span className="text-black font-medium text-lg">
+                  {getInitials(currentUser?.name)}
+                  </span>
                   </div>
-                  <span className="text-white font-medium">Jacob Kantor</span>
+                  <span className="text-white font-medium">{currentUser?.name}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -396,9 +432,9 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center space-x-4">
                           <BookOpen className="h-8 w-8 text-blue-200" />
                           <div>
-                            <h3 className="text-2xl font-bold text-white mb-1">
-                              Biology 101
-                            </h3>
+                          <h3 className="text-2xl font-bold text-white mb-1">
+  {selectedCourse || currentUser?.classes[0]}
+</h3>
                             <p className="text-blue-200">Current Course</p>
                           </div>
                         </div>
@@ -411,24 +447,25 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-                        {["Biology 101", "Chemistry 201", "Physics 301"].map(
-                          (course, index) => (
-                            <motion.div
-                              key={course}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: index * 0.05,
-                              }}
-                            >
-                              <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1">
-                                {course}
-                              </DropdownMenuItem>
-                            </motion.div>
-                          )
-                        )}
+                      {currentUser?.classes?.map((course, index) => (
+  <motion.div
+    key={course}
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 10 }}
+    transition={{
+      duration: 0.2,
+      delay: index * 0.05,
+    }}
+  >
+    <DropdownMenuItem
+      onClick={() => setSelectedCourse(course)}
+      className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
+    >
+      {course}
+    </DropdownMenuItem>
+  </motion.div>
+))}
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -503,63 +540,70 @@ export default function StudentDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                onClick={() => router.push("/student-dashboard/flashcards")}
+                // Example for Flashcards:
+onClick={() => {
+  if (selectedCourse) {
+    router.push(`/student-dashboard/flashcards?class=${encodeURIComponent(selectedCourse)}`);
+  } else {
+    router.push(`/student-dashboard/flashcards`);
+  }
+}}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                    Flashcards
-                  </CardTitle>
+                
                   <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    245
+                    Flashcards
                   </div>
-                  <p className="text-xs text-zinc-500 group-hover:text-black">
-                    +20 since last week
-                  </p>
+                  
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                onClick={() => router.push("/student-dashboard/true-false")}
+                
+                onClick={() => {
+                  if (selectedCourse) {
+                    router.push(`/student-dashboard/true-false?class=${encodeURIComponent(selectedCourse)}`);
+                  } else {
+                    router.push(`/student-dashboard/true-false`);
+                  }
+                }}
+                
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                    True/False Questions
-                  </CardTitle>
                   <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    120
+                  True/False Questions
                   </div>
-                  <p className="text-xs text-zinc-500 group-hover:text-black">
-                    +8 since last week
-                  </p>
+                  
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                onClick={() =>
-                  router.push("/student-dashboard/multiple-choice")
-                }
+
+                onClick={() => {
+                  if (selectedCourse) {
+                    router.push(`/student-dashboard/multiple-choice?class=${encodeURIComponent(selectedCourse)}`);
+                  } else {
+                    router.push(`/student-dashboard/multiple-choice`);
+                  }
+                }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                    Multiple Choice
-                  </CardTitle>
+                
                   <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    180
+                  Multiple Choice
                   </div>
-                  <p className="text-xs text-zinc-500 group-hover:text-black">
-                    +15 since last week
-                  </p>
+                  
                 </CardContent>
               </Card>
 
@@ -568,18 +612,13 @@ export default function StudentDashboardPage() {
                 onClick={() => router.push("/student-dashboard/practice-test")}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
-                    Practice Tests
-                  </CardTitle>
                   <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    12
+                  Practice Tests
                   </div>
-                  <p className="text-xs text-zinc-500 group-hover:text-black">
-                    +2 since last week
-                  </p>
+                  
                 </CardContent>
               </Card>
             </div>

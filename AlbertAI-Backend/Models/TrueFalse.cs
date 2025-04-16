@@ -9,14 +9,16 @@ namespace AlbertAI.Models
 
                 [Key]
                 public int Id { get; set; }
-                public DateTime CreatedAt { get; set; }
-                public DateTime? LastReviewed { get; set; }
+
+                [Required]
+                public string Question { get; set; }
+
+                [Required]
+                public bool IsTrue { get; set; }
                 public int TimesReviewed { get; set; }
                 public double SuccessRate { get; set; }
                 [Required]
                 public int ClassCodeId { get; set; } // Foreign key to ClassCode
 
-                [ForeignKey("ClassCodeId")]
-                public ClassCode ClassCode { get; set; }
         }
 }

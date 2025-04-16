@@ -39,6 +39,31 @@ namespace AlbertAI.Controllers
             return Ok(questions);
         }
 
+        [HttpGet("bycode")]
+        public async Task<IActionResult> GetQuestionsByClassCode([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            var questions = await _context.MultipleChoices
+                .Join(_context.ClassCodes,
+                      mc => mc.ClassCodeId,
+                      cc => cc.Id,
+                      (mc, cc) => new { MultipleChoice = mc, ClassCode = cc })
+                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
+                .Select(x => x.MultipleChoice)
+                .ToListAsync();
+
+            if (!questions.Any())
+            {
+                return NotFound(new { message = "No questions found for this class code." });
+            }
+
+            return Ok(questions);
+        }
+
 
         [HttpPost]
         public async Task<ActionResult<MultipleChoice>> CreateQuestion([FromBody] MultipleChoice question)
