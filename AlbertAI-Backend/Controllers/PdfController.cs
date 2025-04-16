@@ -13,13 +13,13 @@ namespace AlbertAI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PdfController : ControllerBase
+    public class GenerateAIQuestionsController : ControllerBase
     {
         private readonly HttpClient _httpClient;
         private readonly string _azureApiKey;
         private readonly string _azureEndpoint;
 
-        public PdfController()
+        public GenerateAIQuestionsController()
         {
             _httpClient = new HttpClient();
             _azureApiKey = "6voYXKDGzVwTUMDVM4GXLB1mFpZwxNS6dfa2EWokZlorrYDCByGbJQQJ99BDACHYHv6XJ3w3AAAAACOGeKgb";
@@ -27,8 +27,11 @@ namespace AlbertAI.Controllers
         }
 
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files)
+        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files, [FromHeader] string classCode)
         {
+            if (string.IsNullOrEmpty(classCode))
+                return BadRequest("Class code is required in the header.");
+
             if (files == null || files.Count == 0)
                 return BadRequest("No files were uploaded.");
 
@@ -66,9 +69,9 @@ namespace AlbertAI.Controllers
             try
             {
                 // Generate different types of questions
-                var multipleChoiceQuestions = await GenerateMultipleChoiceQuestionsAsync(pdfContent);
-                var trueFalseQuestions = await GenerateTrueFalseQuestionsAsync(pdfContent);
-                var flashcards = await GenerateFlashcardsAsync(pdfContent);
+                var multipleChoiceQuestions = await GenerateMultipleChoiceQuestionsAsync(pdfContent, classCode);
+                var trueFalseQuestions = await GenerateTrueFalseQuestionsAsync(pdfContent, classCode);
+                var flashcards = await GenerateFlashcardsAsync(pdfContent, classCode);
                 
                 // Save files (if server has write access)
                 try
@@ -110,13 +113,13 @@ namespace AlbertAI.Controllers
             }
         }
 
-        private async Task<string> GenerateMultipleChoiceQuestionsAsync(string pdfContent)
+        private async Task<string> GenerateMultipleChoiceQuestionsAsync(string pdfContent, string classCode)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Generate EXACTLY 50 multiple choice questions. They should questions about marketing topics. Each question must be a JSON object with:
+Generate EXACTLY 50 multiple choice questions. They should be questions about {classCode} topics. Each question must be a JSON object with:
 - question: string
 - options: array of 4 strings
 - answer: string (must match one of the options)
@@ -135,13 +138,13 @@ Example format:
             return await CallAzureOpenAIAsync(prompt);
         }
 
-        private async Task<string> GenerateTrueFalseQuestionsAsync(string pdfContent)
+        private async Task<string> GenerateTrueFalseQuestionsAsync(string pdfContent, string classCode)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Generate EXACTLY 50 true/false questions. Each question must be a JSON object with:
+Generate EXACTLY 50 true/false questions about {classCode} topics. Each question must be a JSON object with:
 - statement: string
 - answer: boolean (true or false)
 
@@ -158,13 +161,13 @@ Example format:
             return await CallAzureOpenAIAsync(prompt);
         }
 
-        private async Task<string> GenerateFlashcardsAsync(string pdfContent)
+        private async Task<string> GenerateFlashcardsAsync(string pdfContent, string classCode)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Create EXACTLY 50 flashcards. Each flashcard must be a JSON object with:
+Create EXACTLY 50 flashcards about {classCode} topics. Each flashcard must be a JSON object with:
 - front: string (question or prompt)
 - back: string (answer or explanation)
 
