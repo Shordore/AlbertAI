@@ -62,9 +62,6 @@ namespace MyBackend.Migrations
                     b.Property<int>("ClassCodeId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ClassCodeId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Question")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -74,6 +71,34 @@ namespace MyBackend.Migrations
                     b.ToTable("Flashcards");
                 });
 
+            modelBuilder.Entity("AlbertAI.Models.TrueFalse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsTrue")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<double>("SuccessRate")
+                        .HasColumnType("double");
+
+                    b.Property<int>("TimesReviewed")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TrueFalses");
+                });
             modelBuilder.Entity("AlbertAI.Models.TrueFalse", b =>
                 {
                     b.Property<int>("Id")
@@ -151,6 +176,38 @@ namespace MyBackend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserClasses");
+                });
+
+            modelBuilder.Entity("albertai.models.MultipleChoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Choices")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MultipleChoices");
                 });
 
             modelBuilder.Entity("albertai.models.MultipleChoice", b =>
