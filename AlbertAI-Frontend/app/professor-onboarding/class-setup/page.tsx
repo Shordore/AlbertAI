@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
@@ -14,34 +14,97 @@ export default function ClassSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [className, setClassName] = useState("");
   const [courseCode, setCourseCode] = useState("");
+  const [professorId, setProfessorId] = useState<number | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if professor ID is in session storage from registration
+    const storedProfessorId = sessionStorage.getItem("professorId");
+
+    if (storedProfessorId) {
+      setProfessorId(parseInt(storedProfessorId, 10));
+      return;
+    }
+
+    // If not in session storage, try to get from token
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchProfessorData(token);
+    }
+    // No redirect - continue with the flow even if we don't have ID yet
+  }, []);
+
+  const fetchProfessorData = async (token: string) => {
+    try {
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/professor/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfessorId(data.id);
+        // Store for future use in the onboarding flow
+        sessionStorage.setItem("professorId", data.id.toString());
+      }
+    } catch (error) {
+      console.error("Error fetching professor data:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Get the professor's ID from context/state
-      const professorId = 1; // Placeholder
+      // If we don't have a professor ID yet, try to get one from the backend
+      // This handles the case where the professor is already registered
+      // but we couldn't fetch the ID in the useEffect
+      if (!professorId) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          await fetchProfessorData(token);
+        }
+      }
 
-      const response = await fetch("/api/classes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: courseCode,
-          className: className,
-          professorId: professorId,
-        }),
-      });
+      // Get the professor ID from state or use a temporary ID for onboarding
+      const idToUse = professorId || -1; // Use -1 as a temporary ID if needed
+
+      // Get the token to use for authentication
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/classes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            code: courseCode,
+            className: className,
+            professorId: idToUse,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to create class");
       }
 
       const data = await response.json();
-      // You might want to store the class ID somewhere
+      // Store the class ID if needed
+      if (data.id) {
+        sessionStorage.setItem("classId", data.id.toString());
+      }
+
       router.push("/professor-onboarding/class-code");
     } catch (error) {
       console.error("Error creating class:", error);

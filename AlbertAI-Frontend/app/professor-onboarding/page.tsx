@@ -21,8 +21,11 @@ export default function ProfessorOnboarding() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `http://localhost:5051/api/professor/register`,
+      // 1. Register the professor
+      const registerResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/professor/register`,
         {
           method: "POST",
           headers: {
@@ -31,10 +34,52 @@ export default function ProfessorOnboarding() {
           body: JSON.stringify({ name, email, password }),
         }
       );
-      if (!response.ok) {
-        const errorData = await response.json();
+
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json();
         throw new Error(errorData.message || "Registration failed");
       }
+
+      // 2. Immediately login to get the token
+      const loginResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/professor/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      if (!loginResponse.ok) {
+        throw new Error("Login after registration failed");
+      }
+
+      const loginData = await loginResponse.json();
+
+      // 3. Store the token
+      localStorage.setItem("token", loginData.token);
+
+      // 4. Fetch professor info to get the ID
+      const professorResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/professor/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${loginData.token}`,
+          },
+        }
+      );
+
+      if (professorResponse.ok) {
+        const professorData = await professorResponse.json();
+        sessionStorage.setItem("professorId", professorData.id.toString());
+      }
+
       setIsLoading(false);
       router.push("/professor-onboarding/class-setup");
     } catch (err: any) {
