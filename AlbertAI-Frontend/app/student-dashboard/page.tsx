@@ -614,7 +614,11 @@ export default function StudentDashboardPage() {
                           <BookOpen className="h-8 w-8 text-blue-200" />
                           <div>
                             <h3 className="text-2xl font-bold text-white mb-1">
-                              {selectedCourse || currentUser?.classes[0]}
+                              {selectedCourse ||
+                                (!currentUser?.classes ||
+                                currentUser.classes.length === 0
+                                  ? "Not Enrolled"
+                                  : currentUser?.classes[0])}
                             </h3>
                             <p className="text-blue-200">Current Course</p>
                           </div>
