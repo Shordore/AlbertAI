@@ -23,8 +23,14 @@ namespace albertai.models
 
         [Required]
         public int ClassCodeId { get; set; }
-
-
-
+        
+        public int? ExamId { get; set; } // Foreign key to Exam (nullable)
+        
+        // Navigation properties
+        [ForeignKey("ClassCodeId")]
+        public ClassCode Class { get; set; }
+        
+        [ForeignKey("ExamId")]
+        public Exam Exam { get; set; }
     }
 }
