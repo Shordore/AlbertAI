@@ -259,6 +259,51 @@ Example response format:
 
             return Ok(flashcards);
         }
+
+        // GET: api/flashcards/count?classCode=ABC12345
+        [HttpGet("count")]
+        public async Task<IActionResult> GetFlashcardsCount([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Get class code ID
+            var classCodeEntity = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == classCode.ToLower());
+            
+            if (classCodeEntity == null)
+            {
+                return NotFound($"Class code not found: {classCode}");
+            }
+
+            // Count flashcards for this class
+            var count = await _context.Flashcards
+                .Where(f => f.ClassCodeId == classCodeEntity.Id)
+                .CountAsync();
+
+            return Ok(new { count });
+        }
+
+        // GET: api/flashcards/examcount/{examId}
+        [HttpGet("examcount/{examId}")]
+        public async Task<IActionResult> GetFlashcardsCountByExam(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            // Count flashcards for this exam
+            var count = await _context.Flashcards
+                .Where(f => f.ExamId == examId)
+                .CountAsync();
+
+            return Ok(new { count });
+        }
     }
 
     public class FlashcardGenerationRequest

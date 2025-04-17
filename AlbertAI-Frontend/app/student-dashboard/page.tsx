@@ -45,6 +45,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  getFlashcardsCount,
+  getTrueFalseCount,
+  getMultipleChoiceCount,
+  getFlashcardsCountByExam,
+  getTrueFalseCountByExam,
+  getMultipleChoiceCountByExam,
+} from "@/lib/api";
 
 const performanceData = [
   {
@@ -216,6 +224,110 @@ export default function StudentDashboardPage() {
   const [selectedExam, setSelectedExam] = useState<[string, number] | null>(
     null
   );
+
+  // Add state for question counts
+  const [questionCounts, setQuestionCounts] = useState({
+    flashcards: 0,
+    trueFalse: 0,
+    multipleChoice: 0,
+    practiceTests: 0, // Changed from 12 to 0
+  });
+
+  // Function to fetch question counts
+  const fetchQuestionCounts = async (classCode: string) => {
+    try {
+      // Fetch counts in parallel
+      const [flashcardsCount, trueFalseCount, multipleChoiceCount] =
+        await Promise.all([
+          getFlashcardsCount(classCode),
+          getTrueFalseCount(classCode),
+          getMultipleChoiceCount(classCode),
+        ]);
+
+      setQuestionCounts({
+        flashcards: flashcardsCount,
+        trueFalse: trueFalseCount,
+        multipleChoice: multipleChoiceCount,
+        practiceTests: 0, // Changed from 12 to 0
+      });
+    } catch (error) {
+      console.error("Error fetching question counts:", error);
+    }
+  };
+
+  // Function to fetch question counts for an exam
+  const fetchQuestionCountsByExam = async (examId: number) => {
+    try {
+      // Fetch counts in parallel
+      const [flashcardsCount, trueFalseCount, multipleChoiceCount] =
+        await Promise.all([
+          getFlashcardsCountByExam(examId),
+          getTrueFalseCountByExam(examId),
+          getMultipleChoiceCountByExam(examId),
+        ]);
+
+      setQuestionCounts({
+        flashcards: flashcardsCount,
+        trueFalse: trueFalseCount,
+        multipleChoice: multipleChoiceCount,
+        practiceTests: 0,
+      });
+    } catch (error) {
+      console.error("Error fetching question counts by exam:", error);
+    }
+  };
+
+  // Add class code state
+  const [currentClassCode, setCurrentClassCode] = useState<string | null>(null);
+
+  // Helper function to fetch class code
+  const fetchClassCode = async (className: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(
+          className
+        )}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch class code");
+      }
+      const data = await response.json();
+      return data.classCodeId;
+    } catch (error) {
+      console.error("Error fetching class code:", error);
+      return null;
+    }
+  };
+
+  // Update useEffect to handle both class code and exam selection
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchClassCode(selectedCourse).then((classCode) => {
+        if (classCode) {
+          setCurrentClassCode(classCode);
+          // If an exam is selected, fetch counts for that exam
+          if (selectedExam) {
+            fetchQuestionCountsByExam(selectedExam[1]);
+          } else {
+            // Otherwise fetch counts for the whole class
+            fetchQuestionCounts(classCode);
+          }
+        }
+      });
+    }
+  }, [selectedCourse, selectedExam]);
 
   useEffect(() => {
     if (
@@ -617,13 +729,11 @@ export default function StudentDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                // Example for Flashcards:
                 onClick={() => {
                   if (selectedCourse) {
                     const url = `/student-dashboard/flashcards?class=${encodeURIComponent(
                       selectedCourse
                     )}`;
-                    // Add exam ID if an exam is selected
                     const urlWithExam = selectedExam
                       ? `${url}&examId=${selectedExam[1]}`
                       : url;
@@ -633,12 +743,15 @@ export default function StudentDashboardPage() {
                   }
                 }}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Flashcards
+                  </CardTitle>
                   <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    Flashcards
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.flashcards}
                   </div>
                 </CardContent>
               </Card>
@@ -650,7 +763,6 @@ export default function StudentDashboardPage() {
                     const url = `/student-dashboard/true-false?class=${encodeURIComponent(
                       selectedCourse
                     )}`;
-                    // Add exam ID if an exam is selected
                     const urlWithExam = selectedExam
                       ? `${url}&examId=${selectedExam[1]}`
                       : url;
@@ -660,12 +772,15 @@ export default function StudentDashboardPage() {
                   }
                 }}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    True/False Questions
+                  </CardTitle>
                   <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    True/False Questions
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.trueFalse}
                   </div>
                 </CardContent>
               </Card>
@@ -677,7 +792,6 @@ export default function StudentDashboardPage() {
                     const url = `/student-dashboard/multiple-choice?class=${encodeURIComponent(
                       selectedCourse
                     )}`;
-                    // Add exam ID if an exam is selected
                     const urlWithExam = selectedExam
                       ? `${url}&examId=${selectedExam[1]}`
                       : url;
@@ -687,12 +801,15 @@ export default function StudentDashboardPage() {
                   }
                 }}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Multiple Choice
+                  </CardTitle>
                   <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    Multiple Choice
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.multipleChoice}
                   </div>
                 </CardContent>
               </Card>
@@ -701,12 +818,15 @@ export default function StudentDashboardPage() {
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 onClick={() => router.push("/student-dashboard/practice-test")}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Practice Tests
+                  </CardTitle>
                   <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    Practice Tests
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.practiceTests}
                   </div>
                 </CardContent>
               </Card>
