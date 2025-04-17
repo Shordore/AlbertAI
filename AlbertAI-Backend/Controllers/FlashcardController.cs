@@ -28,32 +28,6 @@ namespace AlbertAI.Controllers
             return await _context.Flashcards.ToListAsync();
         }
 
-        // GET: api/flashcard/bycode?classCode=ABC12345
-        [HttpGet("bycode")]
-        public async Task<IActionResult> GetFlashcardsByClassCode([FromQuery] string classCode)
-        {
-            if (string.IsNullOrWhiteSpace(classCode))
-            {
-                return BadRequest("Parameter 'classCode' is required.");
-            }
-
-            // Join Flashcards with ClassCodes based on the Flashcard's ClassCodeId and the ClassCode's Id.
-            var flashcards = await _context.Flashcards
-                .Join(_context.ClassCodes,
-                    flashcard => flashcard.ClassCodeId,
-                    classEntity => classEntity.Id,
-                    (flashcard, classEntity) => new { Flashcard = flashcard, ClassCode = classEntity })
-                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
-                .Select(x => x.Flashcard)
-                .ToListAsync();
-
-            if (flashcards == null || flashcards.Count == 0)
-            {
-                return NotFound($"No flashcards found for class code: {classCode}");
-            }
-
-            return Ok(flashcards);
-        }
 
 
         // GET: api/flashcard/bycode?classCode=ABC12345
@@ -300,7 +274,7 @@ Example response format:
             // Get class code ID
             var classCodeEntity = await _context.ClassCodes
                 .FirstOrDefaultAsync(c => c.Code.ToLower() == classCode.ToLower());
-            
+
             if (classCodeEntity == null)
             {
                 return NotFound($"Class code not found: {classCode}");

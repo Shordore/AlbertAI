@@ -17,6 +17,28 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
+
+        // GET: api/classes/name?classCode=ABC12345
+        [HttpGet("name")]
+        public async Task<IActionResult> GetClassName([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            var classEntity = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == classCode.ToLower());
+
+            if (classEntity == null)
+            {
+                return NotFound($"No class found with code: {classCode}");
+            }
+
+            return Ok(new { className = classEntity.ClassName });
+        }
+
+
         // GET: api/classes/code?className=Computer%20Science%20101
         [HttpGet("code")]
         public async Task<IActionResult> GetClassCode([FromQuery] string className)

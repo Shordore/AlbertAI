@@ -1,13 +1,14 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace AlbertAI.Models.DTO
 {
-    public class LoginRequest
+    public class UpdateProfessorRequest
     {
-        [Required]
+
+        public string Name { get; set; }
+
+
         public string Email { get; set; }
 
-        [Required]
+
         public string Password { get; set; }
     }
 }

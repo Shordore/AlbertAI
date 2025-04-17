@@ -24,18 +24,17 @@ export default function SignInPage() {
     setErrorMsg("");
 
     const formData = new FormData(event.currentTarget);
-    // Use "ufid" if that's what your backend expects instead of "email"
-    const ufid = formData.get("ufid");
+    const email = formData.get("email");
     const password = formData.get("password");
 
-    // Construct the request body matching your backend LoginRequest DTO
     const requestBody = {
-      UFID: ufid,
+      email: email,
       Password: password
     };
 
     try {
-      const response = await fetch(`${API_URL}/Account/login`, {
+      // Try student login first
+      const studentRes = await fetch(`${API_URL}/Account/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -43,21 +42,40 @@ export default function SignInPage() {
         body: JSON.stringify(requestBody)
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        setErrorMsg(errorData.message || "Login failed");
+      if (studentRes.ok) {
+        const data = await studentRes.json();
+        const token = data.Token || data.token;
+        localStorage.setItem("token", token);
         setIsLoading(false);
+        router.push("/student-dashboard");
         return;
       }
 
-      const data = await response.json();
-      const token = data.Token;
+      // Student login failed: try professor login
+      const profRes = await fetch(`${API_URL}/professor/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-      // Store token as needed (here using localStorage)
-      localStorage.setItem("token", data.token);
+      if (profRes.ok) {
+        const data = await profRes.json();
+        const token = data.Token || data.token;
+        localStorage.setItem("token", token);
+        setIsLoading(false);
+        router.push("/professor-dashboard");
+        return;
+      }
 
+      // Both logins failed: get error from whichever provided a response
+      const studentError = await studentRes.json().catch(() => ({}));
+      const profError = await profRes.json().catch(() => ({}));
+      setErrorMsg(
+        studentError.message || profError.message || "Login failed"
+      );
       setIsLoading(false);
-      router.push("/student-dashboard");
     } catch (error) {
       console.error("Authentication error:", error);
       setErrorMsg("An unexpected error occurred. Please try again.");
@@ -122,14 +140,14 @@ export default function SignInPage() {
           <form onSubmit={onSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ufid" className="text-white">
-                  UFID
+                <Label htmlFor="email" className="text-white">
+                  Email
                 </Label>
                 <Input
-                  id="ufid"
-                  name="ufid"
-                  placeholder="Enter your UFID"
-                  type="text"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  type="email"
                   autoCapitalize="none"
                   autoComplete="username"
                   autoCorrect="off"

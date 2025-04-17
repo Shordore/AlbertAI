@@ -1,8 +1,8 @@
 namespace AlbertAI.Models.DTO
 {
-    public class ClassCodeRequest
+    public class CreateClassCodeRequest
     {
-        public string Email { get; set; }
         public string Code { get; set; }
+        public string ClassName { get; set; }
     }
 }

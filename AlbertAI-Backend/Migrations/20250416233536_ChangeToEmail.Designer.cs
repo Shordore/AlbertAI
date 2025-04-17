@@ -3,6 +3,7 @@ using AlbertAI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MyBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250416233536_ChangeToEmail")]
+    partial class ChangeToEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,7 +42,7 @@ namespace MyBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ClassCodes", (string)null);
+                    b.ToTable("ClassCodes");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.Flashcard", b =>
@@ -67,7 +70,7 @@ namespace MyBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Flashcards", (string)null);
+                    b.ToTable("Flashcards");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.TrueFalse", b =>
@@ -96,7 +99,7 @@ namespace MyBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TrueFalses", (string)null);
+                    b.ToTable("TrueFalses");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.User", b =>
@@ -107,6 +110,10 @@ namespace MyBackend.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -115,16 +122,12 @@ namespace MyBackend.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("UFID")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UFID")
+                    b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>
@@ -146,7 +149,7 @@ namespace MyBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserClasses", (string)null);
+                    b.ToTable("UserClasses");
                 });
 
             modelBuilder.Entity("albertai.models.MultipleChoice", b =>
@@ -178,7 +181,7 @@ namespace MyBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MultipleChoices", (string)null);
+                    b.ToTable("MultipleChoices");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>

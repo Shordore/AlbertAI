@@ -21,6 +21,7 @@ namespace AlbertAI.Data
         public DbSet<Flashcard> Flashcards { get; set; }
         public DbSet<TrueFalse> TrueFalses { get; set; }
         public DbSet<UserClass> UserClasses { get; set; }
+        public DbSet<Professor> Professors { get; set; }
         public DbSet<ClassCode> ClassCodes { get; set; }
         public DbSet<Exam> Exams { get; set; }
 
@@ -37,9 +38,9 @@ namespace AlbertAI.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Unique index on User.UFID
+            // Unique index on User.Email
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.UFID)
+                .HasIndex(u => u.Email)
                 .IsUnique();
         }
     }
