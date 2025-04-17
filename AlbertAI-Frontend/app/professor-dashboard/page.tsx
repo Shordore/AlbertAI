@@ -474,6 +474,44 @@ export default function ProfessorDashboard() {
   const examToDelete = exams.find((e) => e.id === deleteExamId);
   const router = useRouter();
 
+  // Function to delete an exam by ID
+  const deleteExam = async (examId: string) => {
+    if (!examId) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const baseApiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+      const apiUrl = `${baseApiUrl}/Exam/${examId}`;
+
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to delete exam: ${response.status} ${response.statusText}`
+        );
+      }
+
+      // Remove the deleted exam from the state
+      setExams(exams.filter((exam) => exam.id !== examId));
+
+      // Close the dialog and clear the deleteExamId
+      setIsDeleteExamDialogOpen(false);
+      setDeleteExamId(null);
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      // You could add toast notification for error here
+    }
+  };
+
   const initials =
     currentUser?.name
       .split(" ")
@@ -1903,10 +1941,10 @@ export default function ProfessorDashboard() {
               </Button>
               <Button
                 onClick={() => {
-                  // Add delete logic here
-                  console.log("Deleting exam:", deleteExamId);
-                  setIsDeleteExamDialogOpen(false);
-                  setDeleteExamId(null);
+                  // Call the delete function with the exam ID
+                  if (deleteExamId) {
+                    deleteExam(deleteExamId);
+                  }
                 }}
                 className="bg-red-500 text-white hover:bg-red-600"
               >
