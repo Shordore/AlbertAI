@@ -168,10 +168,60 @@ export default function FlashcardsPage() {
   // Instead, use the URL-derived className to call your API
   const searchParams = useSearchParams();
   const className = searchParams.get("class"); // e.g., "Computer Science 101"
+  const examId = searchParams.get("examId"); // Get exam ID from the URL
 
-  // New useEffect to fetch flashcards based on class name through the API
+  // Function to fetch flashcards by exam ID
+  const fetchFlashcardsByExam = async (examId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `http://localhost:5051/api/flashcards/exam/${examId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch flashcards for the selected exam.");
+      }
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const fetchedFlashcards = data.map((item: any) => ({
+          front: item.question,
+          back: item.answer,
+        }));
+
+        setFlashcards(fetchedFlashcards);
+        setTotalCards(fetchedFlashcards.length);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+      } else {
+        setError("No flashcards available for the selected exam.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error fetching flashcards.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // New useEffect to fetch flashcards based on class name or exam ID
   useEffect(() => {
-    if (className) {
+    // If examId is provided, fetch flashcards by exam ID
+    if (examId) {
+      fetchFlashcardsByExam(examId);
+    }
+    // Otherwise use class name to fetch cards
+    else if (className) {
       // First, fetch the class code from the API
       fetchClassCode(className).then((classCode) => {
         if (classCode) {
@@ -182,7 +232,7 @@ export default function FlashcardsPage() {
         }
       });
     }
-  }, [className]);
+  }, [className, examId]);
 
   // Handle keyboard navigation
   useEffect(() => {

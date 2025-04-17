@@ -20,6 +20,7 @@ export default function MultipleChoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const className = searchParams.get("class"); // e.g. "Biology 101"
+  const examId = searchParams.get("examId"); // Get exam ID from URL parameters
 
   // State for multiple choice questions and page logic
   const [questions, setQuestions] = useState<MultipleChoiceQuestion[]>([]);
@@ -32,15 +33,16 @@ export default function MultipleChoicePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // For the progress bar
-  const progress = questions.length > 0 
-    ? ((currentIndex + 1) / questions.length) * 100 
-    : 0;
+  const progress =
+    questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
   // 1) Helper function to get the class code from the class name
   const fetchClassCode = async (className: string): Promise<string | null> => {
     try {
       const response = await fetch(
-        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(className)}`
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(
+          className
+        )}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch class code");
@@ -49,7 +51,9 @@ export default function MultipleChoicePage() {
       // The API returns: { classCodeId: "BIO101" } (for example)
       return data.classCodeId;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error fetching class code");
+      setError(
+        err instanceof Error ? err.message : "Error fetching class code"
+      );
       return null;
     }
   };
@@ -60,7 +64,9 @@ export default function MultipleChoicePage() {
     setError(null);
     try {
       const response = await fetch(
-        `http://localhost:5051/api/multiplechoice/bycode?classCode=${encodeURIComponent(classCode)}`
+        `http://localhost:5051/api/multiplechoice/bycode?classCode=${encodeURIComponent(
+          classCode
+        )}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch multiple choice questions.");
@@ -81,9 +87,41 @@ export default function MultipleChoicePage() {
     }
   };
 
-  // 3) useEffect: first fetch the class code from the name, then fetch MC questions
+  // Helper function to fetch multiple choice questions for an exam
+  const fetchMultipleChoiceByExam = async (examId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/multiplechoice/exam/${examId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch multiple choice questions for exam.");
+      }
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setQuestions(data);
+        setCurrentIndex(0);
+        setUserAnswer(null);
+        setShowFeedback(false);
+      } else {
+        setError("No questions available for the selected exam.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error fetching questions.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3) useEffect: fetch based on examId or className
   useEffect(() => {
-    if (className) {
+    // If examId is provided, fetch questions by exam ID
+    if (examId) {
+      fetchMultipleChoiceByExam(examId);
+    }
+    // Otherwise use class name to fetch questions
+    else if (className) {
       fetchClassCode(className).then((classCode) => {
         if (classCode) {
           fetchMultipleChoiceQuestions(classCode);
@@ -92,7 +130,7 @@ export default function MultipleChoicePage() {
         }
       });
     }
-  }, [className]);
+  }, [className, examId]);
 
   // Called when the user clicks on a choice
   const handleAnswer = (choiceIndex: number) => {
@@ -124,7 +162,10 @@ export default function MultipleChoicePage() {
 
   // Are we correct? Compare the chosen text to the question's `answer` string
   const isCorrect = (choiceIndex: number) => {
-    return questions[currentIndex].choices[choiceIndex] === questions[currentIndex].answer;
+    return (
+      questions[currentIndex].choices[choiceIndex] ===
+      questions[currentIndex].answer
+    );
   };
 
   return (
@@ -206,7 +247,9 @@ export default function MultipleChoicePage() {
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
               <span>
-                {questions.length > 0 ? `${currentIndex + 1} / ${questions.length}` : "0 / 0"}
+                {questions.length > 0
+                  ? `${currentIndex + 1} / ${questions.length}`
+                  : "0 / 0"}
               </span>
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -235,7 +278,9 @@ export default function MultipleChoicePage() {
                     exit={{ opacity: 0, y: -20 }}
                     className="text-4xl font-medium text-[#3B4CCA]"
                   >
-                    {isCorrect(userAnswer!) ? "Correct!" : `Incorrect. The correct answer was "${questions[currentIndex].answer}"`}
+                    {isCorrect(userAnswer!)
+                      ? "Correct!"
+                      : `Incorrect. The correct answer was "${questions[currentIndex].answer}"`}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -259,7 +304,8 @@ export default function MultipleChoicePage() {
                   {questions[currentIndex].choices.map((choice, i) => {
                     // Are we in feedback mode, and is this the correct or chosen choice?
                     const isChoiceCorrect = showFeedback && isCorrect(i);
-                    const isChoiceSelected = showFeedback && userAnswer === i && !isChoiceCorrect;
+                    const isChoiceSelected =
+                      showFeedback && userAnswer === i && !isChoiceCorrect;
 
                     return (
                       <button
@@ -285,7 +331,9 @@ export default function MultipleChoicePage() {
                             }`}
                           >
                             {/* Label each choice with A, B, C, D, etc. */}
-                            <span className="text-white font-medium">{letters[i]}</span>
+                            <span className="text-white font-medium">
+                              {letters[i]}
+                            </span>
                           </div>
                           <span className="text-white text-left">{choice}</span>
                         </div>

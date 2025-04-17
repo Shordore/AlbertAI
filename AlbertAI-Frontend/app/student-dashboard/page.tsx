@@ -620,11 +620,14 @@ export default function StudentDashboardPage() {
                 // Example for Flashcards:
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(
-                      `/student-dashboard/flashcards?class=${encodeURIComponent(
-                        selectedCourse
-                      )}`
-                    );
+                    const url = `/student-dashboard/flashcards?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    // Add exam ID if an exam is selected
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
                   } else {
                     router.push(`/student-dashboard/flashcards`);
                   }
@@ -644,11 +647,14 @@ export default function StudentDashboardPage() {
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(
-                      `/student-dashboard/true-false?class=${encodeURIComponent(
-                        selectedCourse
-                      )}`
-                    );
+                    const url = `/student-dashboard/true-false?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    // Add exam ID if an exam is selected
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
                   } else {
                     router.push(`/student-dashboard/true-false`);
                   }
@@ -668,11 +674,14 @@ export default function StudentDashboardPage() {
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(
-                      `/student-dashboard/multiple-choice?class=${encodeURIComponent(
-                        selectedCourse
-                      )}`
-                    );
+                    const url = `/student-dashboard/multiple-choice?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    // Add exam ID if an exam is selected
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
                   } else {
                     router.push(`/student-dashboard/multiple-choice`);
                   }
