@@ -12,18 +12,36 @@ import Link from "next/link";
 
 export default function ProfessorOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Add authentication logic
-    setTimeout(() => {
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/professor/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, email, password }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
       setIsLoading(false);
       router.push("/professor-onboarding/class-setup");
-    }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Registration error");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,6 +97,21 @@ export default function ProfessorOnboarding() {
           </div>
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-white">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Enter your name"
+                  type="text"
+                  disabled={isLoading}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white">
                   Email

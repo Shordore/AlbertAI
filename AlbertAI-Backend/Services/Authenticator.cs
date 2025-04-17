@@ -71,6 +71,16 @@ namespace AlbertAI.Services
             return GenerateToken(Email);
         }
 
+        // Authenticate a professor by email and password
+        public async Task<string> AuthenticateProfessorAsync(string email, string password)
+        {
+            var prof = await _context.Professors
+                            .FirstOrDefaultAsync(p => p.Email == email);
+            if (prof == null || !VerifyPassword(password, prof.PasswordHash))
+                return null;
+            return GenerateToken(email);
+        }
+
         private string GenerateToken(string Email)
         {
             var tokenHandler = new JwtSecurityTokenHandler();

@@ -21,6 +21,7 @@ namespace AlbertAI.Data
         public DbSet<Flashcard> Flashcards { get; set; }
         public DbSet<TrueFalse> TrueFalses { get; set; }
         public DbSet<UserClass> UserClasses { get; set; }
+        public DbSet<Professor> Professors { get; set; }
         public DbSet<ClassCode> ClassCodes { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
