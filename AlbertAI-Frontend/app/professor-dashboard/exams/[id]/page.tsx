@@ -130,7 +130,7 @@ export default function ExamDetails() {
         if (flashcardsResponse.ok) {
           const flashcardsData = await flashcardsResponse.json();
           console.log("Flashcards API response:", flashcardsData);
-          
+
           // Transform to our interface format - handle different possible field names
           const mappedFlashcards = flashcardsData.map((card: any) => ({
             id: card.id.toString(),
@@ -145,7 +145,7 @@ export default function ExamDetails() {
           // Log error details
           console.error("Failed to fetch flashcards:", {
             status: flashcardsResponse.status,
-            statusText: flashcardsResponse.statusText
+            statusText: flashcardsResponse.statusText,
           });
           try {
             const errorText = await flashcardsResponse.text();
