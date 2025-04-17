@@ -20,7 +20,9 @@ export default function MultipleChoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const className = searchParams.get("class"); // e.g. "Biology 101"
+
   const examId = searchParams.get("examId"); // Get exam ID from URL parameters
+
 
   // State for multiple choice questions and page logic
   const [questions, setQuestions] = useState<MultipleChoiceQuestion[]>([]);
@@ -31,6 +33,7 @@ export default function MultipleChoicePage() {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
 
   // For the progress bar
   const progress =
@@ -132,6 +135,7 @@ export default function MultipleChoicePage() {
     }
   }, [className, examId]);
 
+
   // Called when the user clicks on a choice
   const handleAnswer = (choiceIndex: number) => {
     setUserAnswer(choiceIndex);
@@ -162,10 +166,12 @@ export default function MultipleChoicePage() {
 
   // Are we correct? Compare the chosen text to the question's `answer` string
   const isCorrect = (choiceIndex: number) => {
+
     return (
       questions[currentIndex].choices[choiceIndex] ===
       questions[currentIndex].answer
     );
+
   };
 
   return (
@@ -247,9 +253,11 @@ export default function MultipleChoicePage() {
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
               <span>
+
                 {questions.length > 0
                   ? `${currentIndex + 1} / ${questions.length}`
                   : "0 / 0"}
+
               </span>
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -266,6 +274,7 @@ export default function MultipleChoicePage() {
           {/* If there's an error or no questions, display a message */}
           {error && <p className="text-red-500 mb-4">{error}</p>}
           {isLoading && <p className="text-white mb-4">Loading...</p>}
+
 
           {questions.length > 0 && currentIndex < questions.length && (
             <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
@@ -299,13 +308,16 @@ export default function MultipleChoicePage() {
                   {questions[currentIndex].question}
                 </div>
 
+
                 {/* Render the answer choices */}
                 <div className="grid grid-cols-2 gap-4">
                   {questions[currentIndex].choices.map((choice, i) => {
                     // Are we in feedback mode, and is this the correct or chosen choice?
                     const isChoiceCorrect = showFeedback && isCorrect(i);
+
                     const isChoiceSelected =
                       showFeedback && userAnswer === i && !isChoiceCorrect;
+
 
                     return (
                       <button
@@ -331,9 +343,11 @@ export default function MultipleChoicePage() {
                             }`}
                           >
                             {/* Label each choice with A, B, C, D, etc. */}
+
                             <span className="text-white font-medium">
                               {letters[i]}
                             </span>
+
                           </div>
                           <span className="text-white text-left">{choice}</span>
                         </div>

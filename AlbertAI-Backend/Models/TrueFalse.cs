@@ -19,6 +19,7 @@ namespace AlbertAI.Models
                 
                 [Required]
                 public int ClassCodeId { get; set; } // Foreign key to ClassCode
+
                 
                 public int? ExamId { get; set; } // Foreign key to Exam (nullable)
                 
@@ -28,5 +29,6 @@ namespace AlbertAI.Models
                 
                 [ForeignKey("ExamId")]
                 public Exam Exam { get; set; }
+
         }
 }

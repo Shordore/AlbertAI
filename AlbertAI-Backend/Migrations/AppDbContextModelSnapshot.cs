@@ -87,8 +87,10 @@ namespace MyBackend.Migrations
                     b.Property<int>("ClassCodeId")
                         .HasColumnType("int");
 
+
                     b.Property<int?>("ExamId")
                         .HasColumnType("int");
+
 
                     b.Property<string>("Question")
                         .IsRequired()
@@ -114,8 +116,10 @@ namespace MyBackend.Migrations
                     b.Property<int>("ClassCodeId")
                         .HasColumnType("int");
 
+
                     b.Property<int?>("ExamId")
                         .HasColumnType("int");
+
 
                     b.Property<bool>("IsTrue")
                         .HasColumnType("tinyint(1)");
@@ -132,9 +136,11 @@ namespace MyBackend.Migrations
 
                     b.HasKey("Id");
 
+
                     b.HasIndex("ClassCodeId");
 
                     b.HasIndex("ExamId");
+
 
                     b.ToTable("TrueFalses");
                 });
@@ -212,14 +218,17 @@ namespace MyBackend.Migrations
                     b.Property<int>("ClassCodeId")
                         .HasColumnType("int");
 
+
                     b.Property<int?>("ExamId")
                         .HasColumnType("int");
+
 
                     b.Property<string>("Question")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
+
 
                     b.HasIndex("ClassCodeId");
 
@@ -272,6 +281,7 @@ namespace MyBackend.Migrations
 
                     b.Navigation("Exam");
                 });
+
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>
                 {

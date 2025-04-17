@@ -55,6 +55,34 @@ namespace AlbertAI.Controllers
             return Ok(flashcards);
         }
 
+
+        // GET: api/flashcard/bycode?classCode=ABC12345
+        [HttpGet("bycode")]
+        public async Task<IActionResult> GetFlashcardsByClassCode([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Join Flashcards with ClassCodes based on the Flashcard's ClassCodeId and the ClassCode's Id.
+            var flashcards = await _context.Flashcards
+                .Join(_context.ClassCodes,
+                    flashcard => flashcard.ClassCodeId,
+                    classEntity => classEntity.Id,
+                    (flashcard, classEntity) => new { Flashcard = flashcard, ClassCode = classEntity })
+                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
+                .Select(x => x.Flashcard)
+                .ToListAsync();
+
+            if (flashcards == null || flashcards.Count == 0)
+            {
+                return NotFound($"No flashcards found for class code: {classCode}");
+            }
+
+            return Ok(flashcards);
+        }
+
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetFlashcardsByClass(int classCodeId)
         {

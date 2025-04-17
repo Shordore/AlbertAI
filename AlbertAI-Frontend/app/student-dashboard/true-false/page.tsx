@@ -22,7 +22,9 @@ export default function TrueFalsePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const className = searchParams.get("class"); // e.g. "Biology 101"
+
   const examId = searchParams.get("examId"); // Get exam ID from URL parameters
+
 
   // State to store dynamic true/false questions
   const [questions, setQuestions] = useState<TrueFalseQuestion[]>([]);
@@ -31,7 +33,9 @@ export default function TrueFalsePage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+
   // Motion values and hooks called at the top-level so they're not conditional
+
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-30, 30]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -43,6 +47,7 @@ export default function TrueFalsePage() {
   // Define left and right opacities outside of the JSX to avoid conditionally calling hooks.
   const leftOpacity = useTransform(x, [0, -100], [0.5, 1]);
   const rightOpacity = useTransform(x, [0, 100], [0.5, 1]);
+
 
   const progress =
     questions.length > 0 ? (currentIndex / questions.length) * 100 : 0;
@@ -102,6 +107,7 @@ export default function TrueFalsePage() {
       );
       if (!response.ok) {
         throw new Error("Failed to fetch true/false questions for exam");
+
       }
       const data = await response.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -110,14 +116,17 @@ export default function TrueFalsePage() {
         setUserAnswer(null);
         setShowFeedback(false);
       } else {
+
         console.error(
           "No true/false questions available for the selected exam."
         );
+
       }
     } catch (err) {
       console.error(err);
     }
   };
+
 
   // When className or examId is provided in the URL, fetch the appropriate questions
   useEffect(() => {
@@ -127,6 +136,7 @@ export default function TrueFalsePage() {
     }
     // Otherwise use class name to fetch questions
     else if (className) {
+
       fetchClassCode(className).then((classCode) => {
         if (classCode) {
           fetchTrueFalseQuestions(classCode);
@@ -135,7 +145,9 @@ export default function TrueFalsePage() {
         }
       });
     }
+
   }, [className, examId]);
+
 
   // Keyboard swipe support
   useEffect(() => {
@@ -312,11 +324,13 @@ export default function TrueFalsePage() {
               {className || "True/False Practice"}
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
+
               <span>
                 {questions.length > 0
                   ? `${currentIndex + 1} / ${questions.length}`
                   : "0 / 0"}
               </span>
+
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
               <div

@@ -8,7 +8,9 @@ import { StaticSparkles } from "@/components/static-sparkles";
 import { generateFlashcards } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import { useSearchParams } from "next/navigation";
+
 
 interface Flashcard {
   front: string;
@@ -86,6 +88,7 @@ export default function FlashcardsPage() {
       setIsLoading(false);
     }
   };
+
 
   // Add this new helper function near the other functions in your file:
   const fetchClassCode = async (className: string): Promise<string | null> => {
@@ -233,6 +236,7 @@ export default function FlashcardsPage() {
       });
     }
   }, [className, examId]);
+
 
   // Handle keyboard navigation
   useEffect(() => {

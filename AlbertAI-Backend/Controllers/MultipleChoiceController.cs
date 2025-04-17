@@ -64,6 +64,7 @@ namespace AlbertAI.Controllers
             return Ok(questions);
         }
 
+
         [HttpPost]
         public async Task<ActionResult<MultipleChoice>> CreateQuestion([FromBody] MultipleChoice question)
         {
