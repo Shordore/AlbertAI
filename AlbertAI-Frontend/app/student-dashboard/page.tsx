@@ -212,6 +212,11 @@ export default function StudentDashboardPage() {
     classes: string[];
   } | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [exams, setExams] = useState<Array<{ title: string; id: number }>>([]);
+  const [selectedExam, setSelectedExam] = useState<[string, number] | null>(
+    null
+  );
+
   useEffect(() => {
     if (
       currentUser &&
@@ -222,6 +227,7 @@ export default function StudentDashboardPage() {
       setSelectedCourse(currentUser.classes[0]);
     }
   }, [currentUser, selectedCourse]);
+
   useEffect(() => {
     const API_URL =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
@@ -259,6 +265,36 @@ export default function StudentDashboardPage() {
         }
       });
   }, []);
+
+  const fetchExamsForClass = async (className: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/Exam/byclassname?className=${encodeURIComponent(
+          className
+        )}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch exams");
+      }
+      const data = await response.json();
+      setExams(data);
+      if (data.length > 0) {
+        setSelectedExam([data[0].title, data[0].id]);
+      } else {
+        setSelectedExam(null);
+      }
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      setExams([]);
+      setSelectedExam(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchExamsForClass(selectedCourse);
+    }
+  }, [selectedCourse]);
 
   function getInitials(fullName?: string): string {
     if (!fullName) return "";
@@ -530,7 +566,7 @@ export default function StudentDashboardPage() {
                           <ClipboardCheck className="h-8 w-8 text-purple-200" />
                           <div>
                             <h3 className="text-2xl font-bold text-white mb-1">
-                              Exam 1
+                              {selectedExam ? selectedExam[0] : "No Exams"}
                             </h3>
                             <p className="text-purple-200">Current Focus</p>
                           </div>
@@ -544,23 +580,31 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-                        {["Exam 1", "Final Exam", "Midterm Exam"].map(
-                          (exam, index) => (
-                            <motion.div
-                              key={exam}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: index * 0.05,
-                              }}
+                        {exams.map((exam, index) => (
+                          <motion.div
+                            key={exam.id}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{
+                              duration: 0.2,
+                              delay: index * 0.05,
+                            }}
+                          >
+                            <DropdownMenuItem
+                              className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1"
+                              onClick={() =>
+                                setSelectedExam([exam.title, exam.id])
+                              }
                             >
-                              <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1">
-                                {exam}
-                              </DropdownMenuItem>
-                            </motion.div>
-                          )
+                              {exam.title}
+                            </DropdownMenuItem>
+                          </motion.div>
+                        ))}
+                        {exams.length === 0 && (
+                          <DropdownMenuItem className="text-gray-400 hover:text-gray-400 focus:text-gray-400 rounded-xl m-1 cursor-default">
+                            No exams available
+                          </DropdownMenuItem>
                         )}
                       </AnimatePresence>
                     </DropdownMenuContent>
