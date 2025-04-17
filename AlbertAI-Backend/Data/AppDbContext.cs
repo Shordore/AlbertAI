@@ -23,6 +23,7 @@ namespace AlbertAI.Data
         public DbSet<UserClass> UserClasses { get; set; }
         public DbSet<Professor> Professors { get; set; }
         public DbSet<ClassCode> ClassCodes { get; set; }
+        public DbSet<Exam> Exams { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

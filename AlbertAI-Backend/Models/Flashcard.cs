@@ -24,6 +24,14 @@ namespace AlbertAI.Models
         public string Category { get; set; } // Optional category
 
         public int ClassCodeId { get; set; } // Foreign key to ClassCode
-
+        
+        public int? ExamId { get; set; } // Foreign key to Exam (nullable)
+        
+        // Navigation properties
+        [ForeignKey("ClassCodeId")]
+        public ClassCode Class { get; set; }
+        
+        [ForeignKey("ExamId")]
+        public Exam Exam { get; set; }
     }
 }

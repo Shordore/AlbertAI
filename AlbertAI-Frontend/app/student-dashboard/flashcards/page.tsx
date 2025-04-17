@@ -8,7 +8,9 @@ import { StaticSparkles } from "@/components/static-sparkles";
 import { generateFlashcards } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useSearchParams } from "next/navigation"; 
+
+import { useSearchParams } from "next/navigation";
+
 
 interface Flashcard {
   front: string;
@@ -45,22 +47,24 @@ export default function FlashcardsPage() {
   // Handle fetch flashcards from API
   const handleGenerateFlashcards = async () => {
     if (!topic.trim() || isLoading) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log(`Sending request to generate flashcards for topic: ${topic}`);
       const response = await generateFlashcards(topic);
-      console.log('Response received:', response);
-      
+      console.log("Response received:", response);
+
       // Format the response into flashcards
       // This assumes the API returns flashcards in a specific format
-      const formattedFlashcards = Array.isArray(response) ? response.map((item: any) => ({
-        front: item.question || item.front,
-        back: item.answer || item.back
-      })) : [];
-      
+      const formattedFlashcards = Array.isArray(response)
+        ? response.map((item: any) => ({
+            front: item.question || item.front,
+            back: item.answer || item.back,
+          }))
+        : [];
+
       if (formattedFlashcards.length > 0) {
         setFlashcards(formattedFlashcards);
         setTotalCards(formattedFlashcards.length);
@@ -68,96 +72,180 @@ export default function FlashcardsPage() {
         setIsFlipped(false);
       } else {
         // If no flashcards were returned, use the sample ones
-        setError("No valid flashcards were generated. Using sample flashcards instead.");
+        setError(
+          "No valid flashcards were generated. Using sample flashcards instead."
+        );
         console.error("No valid flashcards in response:", response);
       }
     } catch (err) {
-      setError(`Error generating flashcards: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
+      setError(
+        `Error generating flashcards: ${
+          err instanceof Error ? err.message : "Failed to fetch"
+        }`
+      );
       console.error("Error generating flashcards:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
- 
-// Add this new helper function near the other functions in your file:
-const fetchClassCode = async (className: string): Promise<string | null> => {
-  try {
-    
-    const response = await fetch(`http://localhost:5051/api/Classes/code?className=${encodeURIComponent(className)}`);
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch class code");
-    }
-    const data = await response.json();
-    // We assume the response is in the form { classCodeId: "ABC12345" }
-    return data.classCodeId;
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Error fetching class code");
-    return null;
-  }
-};
 
-const fetchFlashcardsForClass = async (classCode: string) => {
-  setIsLoading(true);
-  setError(null);
-  try {
-    const response = await fetch(`http://localhost:5051/api/flashcards/bycode?classCode=${encodeURIComponent(classCode)}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch flashcards for the selected class.");
-    }
-    const data = await response.json();
-    
-    if (Array.isArray(data) && data.length > 0) {
-      // Transform the API data { question, answer, ... } to { front, back }
-      const fetchedFlashcards = data.map((item: any) => ({
-        front: item.question,
-        back: item.answer,
-      }));
-
-      setFlashcards(fetchedFlashcards);
-      setTotalCards(fetchedFlashcards.length);
-      setCurrentIndex(0);
-      setIsFlipped(false);
-    } else {
-      setError("No flashcards available for the selected class.");
-    }
-  } catch (err: any) {
-    setError(err.message || "Error fetching flashcards.");
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-// Instead, use the URL-derived className to call your API
-const searchParams = useSearchParams();
-const className = searchParams.get("class"); // e.g., "Computer Science 101"
-
-// New useEffect to fetch flashcards based on class name through the API
-useEffect(() => {
-  if (className) {
-    // First, fetch the class code from the API
-    fetchClassCode(className).then((classCode) => {
-      if (classCode) {
-        // Then, using the obtained class code, fetch the flashcards
-        fetchFlashcardsForClass(classCode);
-      } else {
-        setError("Class code not found for the selected class.");
+  // Add this new helper function near the other functions in your file:
+  const fetchClassCode = async (className: string): Promise<string | null> => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
       }
-    });
-  }
-}, [className]);
 
+      const response = await fetch(
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(
+          className
+        )}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch class code");
+      }
+      const data = await response.json();
+      return data.classCodeId;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error fetching class code"
+      );
+      return null;
+    }
+  };
+
+  const fetchFlashcardsForClass = async (classCode: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `http://localhost:5051/api/flashcards/bycode?classCode=${encodeURIComponent(
+          classCode
+        )}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch flashcards for the selected class.");
+      }
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const fetchedFlashcards = data.map((item: any) => ({
+          front: item.question,
+          back: item.answer,
+        }));
+
+        setFlashcards(fetchedFlashcards);
+        setTotalCards(fetchedFlashcards.length);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+      } else {
+        setError("No flashcards available for the selected class.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error fetching flashcards.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Instead, use the URL-derived className to call your API
+  const searchParams = useSearchParams();
+  const className = searchParams.get("class"); // e.g., "Computer Science 101"
+  const examId = searchParams.get("examId"); // Get exam ID from the URL
+
+  // Function to fetch flashcards by exam ID
+  const fetchFlashcardsByExam = async (examId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `http://localhost:5051/api/flashcards/exam/${examId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch flashcards for the selected exam.");
+      }
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const fetchedFlashcards = data.map((item: any) => ({
+          front: item.question,
+          back: item.answer,
+        }));
+
+        setFlashcards(fetchedFlashcards);
+        setTotalCards(fetchedFlashcards.length);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+      } else {
+        setError("No flashcards available for the selected exam.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error fetching flashcards.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // New useEffect to fetch flashcards based on class name or exam ID
+  useEffect(() => {
+    // If examId is provided, fetch flashcards by exam ID
+    if (examId) {
+      fetchFlashcardsByExam(examId);
+    }
+    // Otherwise use class name to fetch cards
+    else if (className) {
+      // First, fetch the class code from the API
+      fetchClassCode(className).then((classCode) => {
+        if (classCode) {
+          // Then, using the obtained class code, fetch the flashcards
+          fetchFlashcardsForClass(classCode);
+        } else {
+          setError("Class code not found for the selected class.");
+        }
+      });
+    }
+  }, [className, examId]);
 
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Skip keyboard navigation if an input field is focused
-      if (document.activeElement?.tagName === 'INPUT') {
+      if (document.activeElement?.tagName === "INPUT") {
         return;
       }
-      
+
       if (e.key === "ArrowLeft") {
         setDirection(-1);
         handlePrevious();
@@ -231,62 +319,46 @@ useEffect(() => {
       <div className="relative z-10 flex flex-col flex-1">
         {/* Header */}
         <div className="flex flex-col">
-          <div className="flex items-center gap-4 p-4">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <button
               onClick={() => router.push("/student-dashboard")}
               className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2"
             >
               <ChevronLeft className="w-5 h-5" />
-              <span>Flashcards</span>
+              <span className="text-lg">Flashcards</span>
             </button>
             <button
               onClick={() => router.push("/student-dashboard")}
-              className="text-zinc-400 hover:text-white transition-colors ml-auto"
+              className="text-zinc-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          
-          {/* Add Flashcard Generator UI */}
-          <div className="px-4 pb-4 flex gap-2">
-            <Input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter a topic for flashcards..."
-              className="flex-1 bg-zinc-900 border-zinc-700 text-white"
-              onKeyPress={(e) => e.key === "Enter" && handleGenerateFlashcards()}
-            />
-            <Button
-              onClick={handleGenerateFlashcards}
-              className="bg-[#3B4CCA] hover:bg-blue-700 text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? "Generating..." : <Plus className="w-5 h-5" />}
-            </Button>
-          </div>
 
-          {error && (
-            <div className="px-4 pb-2 text-red-500 text-sm">{error}</div>
-          )}
-
-          <div className="px-4 pb-4">
-            <h1 className="text-2xl font-semibold text-white mb-2">
-              {topic ? `Flashcards: ${topic}` : "Sample Flashcards"}
-            </h1>
-            <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between text-sm text-zinc-400">
               <span>
-                {flashcards.length > 0 ? `${currentIndex + 1} / ${totalCards}` : "No flashcards"}
+                {flashcards.length > 0
+                  ? `${currentIndex + 1} / ${totalCards}`
+                  : "No flashcards"}
               </span>
             </div>
-            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden mt-2">
               <div
                 className="h-full bg-[#3B4CCA] transition-all duration-300 ease-out"
-                style={{ width: `${flashcards.length > 0 ? ((currentIndex + 1) / totalCards) * 100 : 0}%` }}
+                style={{
+                  width: `${
+                    flashcards.length > 0
+                      ? ((currentIndex + 1) / totalCards) * 100
+                      : 0
+                  }%`,
+                }}
               />
             </div>
           </div>
         </div>
+
+        {error && <div className="px-4 pb-2 text-red-500 text-sm">{error}</div>}
 
         {/* Flashcard Area */}
         <div className="flex-1 flex items-center justify-center p-6">

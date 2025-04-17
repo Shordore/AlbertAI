@@ -103,6 +103,70 @@ namespace AlbertAI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        // GET: api/TrueFalse/exam/{examId}
+        [HttpGet("exam/{examId}")]
+        public async Task<ActionResult<IEnumerable<TrueFalse>>> GetByExamId(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            var questions = await _context.TrueFalses
+                .Where(q => q.ExamId == examId)
+                .Include(q => q.Class)
+                .ToListAsync();
+
+            return Ok(questions);
+        }
+
+        // GET: api/truefalse/count?classCode=ABC12345
+        [HttpGet("count")]
+        public async Task<IActionResult> GetTrueFalseCount([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Get class code ID
+            var classCodeEntity = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == classCode.ToLower());
+            
+            if (classCodeEntity == null)
+            {
+                return NotFound($"Class code not found: {classCode}");
+            }
+
+            // Count true/false questions for this class
+            var count = await _context.TrueFalses
+                .Where(tf => tf.ClassCodeId == classCodeEntity.Id)
+                .CountAsync();
+
+            return Ok(new { count });
+        }
+
+        // GET: api/truefalse/examcount/{examId}
+        [HttpGet("examcount/{examId}")]
+        public async Task<IActionResult> GetTrueFalseCountByExam(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            // Count true/false questions for this exam
+            var count = await _context.TrueFalses
+                .Where(tf => tf.ExamId == examId)
+                .CountAsync();
+
+            return Ok(new { count });
+        }
     }
 }
 

@@ -23,6 +23,9 @@ export default function TrueFalsePage() {
   const searchParams = useSearchParams();
   const className = searchParams.get("class"); // e.g. "Biology 101"
 
+  const examId = searchParams.get("examId"); // Get exam ID from URL parameters
+
+
   // State to store dynamic true/false questions
   const [questions, setQuestions] = useState<TrueFalseQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,7 +33,9 @@ export default function TrueFalsePage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
-  // Motion values and hooks called at the top-level so they’re not conditional
+
+  // Motion values and hooks called at the top-level so they're not conditional
+
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-30, 30]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -43,15 +48,17 @@ export default function TrueFalsePage() {
   const leftOpacity = useTransform(x, [0, -100], [0.5, 1]);
   const rightOpacity = useTransform(x, [0, 100], [0.5, 1]);
 
-  const progress = questions.length > 0
-    ? (currentIndex / questions.length) * 100
-    : 0;
+
+  const progress =
+    questions.length > 0 ? (currentIndex / questions.length) * 100 : 0;
 
   // Helper function to fetch the class code using the class name
   const fetchClassCode = async (className: string): Promise<string | null> => {
     try {
       const response = await fetch(
-        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(className)}`
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(
+          className
+        )}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch class code");
@@ -69,7 +76,9 @@ export default function TrueFalsePage() {
   const fetchTrueFalseQuestions = async (classCode: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5051/api/TrueFalse/bycode?classCode=${encodeURIComponent(classCode)}`
+        `http://localhost:5051/api/TrueFalse/bycode?classCode=${encodeURIComponent(
+          classCode
+        )}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch true/false questions");
@@ -81,16 +90,53 @@ export default function TrueFalsePage() {
         setUserAnswer(null);
         setShowFeedback(false);
       } else {
-        console.error("No true/false questions available for the selected class.");
+        console.error(
+          "No true/false questions available for the selected class."
+        );
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // When className is provided in the URL, fetch the class code then the questions.
+  // Helper function to fetch True/False questions for an exam
+  const fetchTrueFalseQuestionsByExam = async (examId: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/TrueFalse/exam/${examId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch true/false questions for exam");
+
+      }
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setQuestions(data);
+        setCurrentIndex(0);
+        setUserAnswer(null);
+        setShowFeedback(false);
+      } else {
+
+        console.error(
+          "No true/false questions available for the selected exam."
+        );
+
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
+  // When className or examId is provided in the URL, fetch the appropriate questions
   useEffect(() => {
-    if (className) {
+    // If examId is provided, fetch questions by exam ID
+    if (examId) {
+      fetchTrueFalseQuestionsByExam(examId);
+    }
+    // Otherwise use class name to fetch questions
+    else if (className) {
+
       fetchClassCode(className).then((classCode) => {
         if (classCode) {
           fetchTrueFalseQuestions(classCode);
@@ -99,7 +145,9 @@ export default function TrueFalsePage() {
         }
       });
     }
-  }, [className]);
+
+  }, [className, examId]);
+
 
   // Keyboard swipe support
   useEffect(() => {
@@ -276,7 +324,13 @@ export default function TrueFalsePage() {
               {className || "True/False Practice"}
             </h1>
             <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
-              <span>{questions.length > 0 ? `${currentIndex + 1} / ${questions.length}` : "0 / 0"}</span>
+
+              <span>
+                {questions.length > 0
+                  ? `${currentIndex + 1} / ${questions.length}`
+                  : "0 / 0"}
+              </span>
+
             </div>
             <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
               <div
