@@ -136,5 +136,23 @@ namespace AlbertAI.Controllers
 
             return Ok(exams);
         }
+
+        // DELETE: api/Exam/{id}
+        [HttpDelete("{id}")]
+        [AllowAnonymous] // Remove this and use proper authorization in production
+        public async Task<IActionResult> DeleteExam(int id)
+        {
+            var exam = await _context.Exams.FindAsync(id);
+            
+            if (exam == null)
+            {
+                return NotFound($"Exam with ID {id} not found.");
+            }
+
+            _context.Exams.Remove(exam);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Exam with ID {id} deleted successfully." });
+        }
     }
 } 
