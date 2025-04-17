@@ -149,10 +149,60 @@ namespace AlbertAI.Controllers
                 return NotFound($"Exam with ID {id} not found.");
             }
 
-            _context.Exams.Remove(exam);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = $"Exam with ID {id} deleted successfully." });
+            try
+            {
+                // Delete all question types associated with this exam
+                int deletedQuestionCount = 0;
+                
+                // Delete multiple choice questions
+                var multipleChoiceQuestions = await _context.MultipleChoices
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (multipleChoiceQuestions.Any())
+                {
+                    _context.MultipleChoices.RemoveRange(multipleChoiceQuestions);
+                    deletedQuestionCount += multipleChoiceQuestions.Count;
+                }
+                
+                // Delete true/false questions
+                var trueFalseQuestions = await _context.TrueFalses
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (trueFalseQuestions.Any())
+                {
+                    _context.TrueFalses.RemoveRange(trueFalseQuestions);
+                    deletedQuestionCount += trueFalseQuestions.Count;
+                }
+                
+                // Delete flashcard questions
+                var flashcardQuestions = await _context.Flashcards
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (flashcardQuestions.Any())
+                {
+                    _context.Flashcards.RemoveRange(flashcardQuestions);
+                    deletedQuestionCount += flashcardQuestions.Count;
+                }
+                
+                // Apply changes to delete questions
+                await _context.SaveChangesAsync();
+                
+                // Then delete the exam
+                _context.Exams.Remove(exam);
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { 
+                    message = $"Exam with ID {id} deleted successfully.",
+                    deletedQuestionsCount = deletedQuestionCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Failed to delete exam: {ex.Message}" });
+            }
         }
     }
 } 

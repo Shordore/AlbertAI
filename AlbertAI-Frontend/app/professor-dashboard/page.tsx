@@ -468,6 +468,7 @@ export default function ProfessorDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteExamId, setDeleteExamId] = useState<string | null>(null);
   const [isDeleteExamDialogOpen, setIsDeleteExamDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const notificationToDelete = notifications.find(
     (n) => n.id === deleteNotificationId
   );
@@ -478,13 +479,23 @@ export default function ProfessorDashboard() {
   const deleteExam = async (examId: string) => {
     if (!examId) return;
 
+    // Set loading state
+    setIsDeleting(true);
+
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        console.error("No authentication token found");
+        setIsDeleting(false);
+        return;
+      }
 
       const baseApiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
       const apiUrl = `${baseApiUrl}/Exam/${examId}`;
+
+      console.log(`Attempting to delete exam with ID: ${examId}`);
+      console.log(`Request URL: ${apiUrl}`);
 
       const response = await fetch(apiUrl, {
         method: "DELETE",
@@ -494,21 +505,33 @@ export default function ProfessorDashboard() {
         },
       });
 
+      console.log(`Delete response status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(
-          `Failed to delete exam: ${response.status} ${response.statusText}`
+          `Failed to delete exam: ${response.status} ${response.statusText}. Details: ${errorText}`
         );
       }
 
+      console.log(`Successfully deleted exam with ID: ${examId}`);
+
       // Remove the deleted exam from the state
-      setExams(exams.filter((exam) => exam.id !== examId));
+      setExams((prevExams) => prevExams.filter((exam) => exam.id !== examId));
 
       // Close the dialog and clear the deleteExamId
       setIsDeleteExamDialogOpen(false);
       setDeleteExamId(null);
     } catch (error) {
       console.error("Error deleting exam:", error);
-      // You could add toast notification for error here
+      alert(
+        `Failed to delete exam: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      // Always reset loading state
+      setIsDeleting(false);
     }
   };
 
@@ -1936,6 +1959,7 @@ export default function ProfessorDashboard() {
                 variant="outline"
                 onClick={() => setIsDeleteExamDialogOpen(false)}
                 className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
@@ -1947,8 +1971,16 @@ export default function ProfessorDashboard() {
                   }
                 }}
                 className="bg-red-500 text-white hover:bg-red-600"
+                disabled={isDeleting}
               >
-                Delete Exam
+                {isDeleting ? (
+                  <div className="flex items-center">
+                    <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </div>
+                ) : (
+                  "Delete Exam"
+                )}
               </Button>
             </div>
           </div>
