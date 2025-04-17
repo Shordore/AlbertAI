@@ -291,37 +291,36 @@ export default function TrueFalsePage() {
       <div className="relative z-10 flex flex-col flex-1">
         {/* Header */}
         <div className="flex flex-col">
-          <div className="flex items-center gap-4 p-4">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <button
               onClick={() => router.push("/student-dashboard")}
               className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2"
             >
               <ChevronLeft className="w-5 h-5" />
-              <span>True/False</span>
+              <span className="text-lg">True/False</span>
             </button>
             <button
               onClick={() => router.push("/student-dashboard")}
-              className="text-zinc-400 hover:text-white transition-colors ml-auto"
+              className="text-zinc-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="px-4 pb-4">
-            <h1 className="text-2xl font-semibold text-white mb-2">
-              {className || "True/False Practice"}
-            </h1>
-            <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between text-sm text-zinc-400">
               <span>
                 {questions.length > 0
                   ? `${currentIndex + 1} / ${questions.length}`
-                  : "0 / 0"}
+                  : "No questions"}
               </span>
             </div>
-            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden mt-2">
               <div
                 className="h-full bg-[#3B4CCA] transition-all duration-300 ease-out"
-                style={{ width: `${progress}%` }}
+                style={{
+                  width: `${progress}%`,
+                }}
               />
             </div>
           </div>

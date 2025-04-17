@@ -315,59 +315,31 @@ export default function FlashcardsPage() {
       <div className="relative z-10 flex flex-col flex-1">
         {/* Header */}
         <div className="flex flex-col">
-          <div className="flex items-center gap-4 p-4">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <button
               onClick={() => router.push("/student-dashboard")}
               className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2"
             >
               <ChevronLeft className="w-5 h-5" />
-              <span>Flashcards</span>
+              <span className="text-lg">Flashcards</span>
             </button>
             <button
               onClick={() => router.push("/student-dashboard")}
-              className="text-zinc-400 hover:text-white transition-colors ml-auto"
+              className="text-zinc-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Add Flashcard Generator UI */}
-          <div className="px-4 pb-4 flex gap-2">
-            <Input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter a topic for flashcards..."
-              className="flex-1 bg-zinc-900 border-zinc-700 text-white"
-              onKeyPress={(e) =>
-                e.key === "Enter" && handleGenerateFlashcards()
-              }
-            />
-            <Button
-              onClick={handleGenerateFlashcards}
-              className="bg-[#3B4CCA] hover:bg-blue-700 text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? "Generating..." : <Plus className="w-5 h-5" />}
-            </Button>
-          </div>
-
-          {error && (
-            <div className="px-4 pb-2 text-red-500 text-sm">{error}</div>
-          )}
-
-          <div className="px-4 pb-4">
-            <h1 className="text-2xl font-semibold text-white mb-2">
-              {topic ? `Flashcards: ${topic}` : "Sample Flashcards"}
-            </h1>
-            <div className="flex items-center justify-between text-sm text-zinc-400 mb-2">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between text-sm text-zinc-400">
               <span>
                 {flashcards.length > 0
                   ? `${currentIndex + 1} / ${totalCards}`
                   : "No flashcards"}
               </span>
             </div>
-            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden mt-2">
               <div
                 className="h-full bg-[#3B4CCA] transition-all duration-300 ease-out"
                 style={{
@@ -381,6 +353,8 @@ export default function FlashcardsPage() {
             </div>
           </div>
         </div>
+
+        {error && <div className="px-4 pb-2 text-red-500 text-sm">{error}</div>}
 
         {/* Flashcard Area */}
         <div className="flex-1 flex items-center justify-center p-6">
