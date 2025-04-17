@@ -49,6 +49,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  getFlashcardsCount,
+  getTrueFalseCount,
+  getMultipleChoiceCount,
+  getFlashcardsCountByExam,
+  getTrueFalseCountByExam,
+  getMultipleChoiceCountByExam,
+} from "@/lib/api";
 
 const performanceData = [
   {
@@ -211,24 +219,200 @@ export default function StudentDashboardPage() {
   });
   const router = useRouter();
 
-  const [currentUser, setCurrentUser] = useState<{ name: string; classes: string[] } | null>(null);
+
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    classes: string[];
+  } | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [exams, setExams] = useState<Array<{ title: string; id: number }>>([]);
+  const [selectedExam, setSelectedExam] = useState<[string, number] | null>(
+    null
+  );
+
+  // Add state for question counts
+  const [questionCounts, setQuestionCounts] = useState({
+    flashcards: 0,
+    trueFalse: 0,
+    multipleChoice: 0,
+    practiceTests: 0, // Changed from 12 to 0
+  });
+
+  // Function to fetch question counts
+  const fetchQuestionCounts = async (classCode: string) => {
+    try {
+      // Fetch counts in parallel
+      const [flashcardsCount, trueFalseCount, multipleChoiceCount] =
+        await Promise.all([
+          getFlashcardsCount(classCode),
+          getTrueFalseCount(classCode),
+          getMultipleChoiceCount(classCode),
+        ]);
+
+      setQuestionCounts({
+        flashcards: flashcardsCount,
+        trueFalse: trueFalseCount,
+        multipleChoice: multipleChoiceCount,
+        practiceTests: 0, // Changed from 12 to 0
+      });
+    } catch (error) {
+      console.error("Error fetching question counts:", error);
+    }
+  };
+
+  // Function to fetch question counts for an exam
+  const fetchQuestionCountsByExam = async (examId: number) => {
+    try {
+      // Fetch counts in parallel
+      const [flashcardsCount, trueFalseCount, multipleChoiceCount] =
+        await Promise.all([
+          getFlashcardsCountByExam(examId),
+          getTrueFalseCountByExam(examId),
+          getMultipleChoiceCountByExam(examId),
+        ]);
+
+      setQuestionCounts({
+        flashcards: flashcardsCount,
+        trueFalse: trueFalseCount,
+        multipleChoice: multipleChoiceCount,
+        practiceTests: 0,
+      });
+    } catch (error) {
+      console.error("Error fetching question counts by exam:", error);
+    }
+  };
+
+  // Add class code state
+  const [currentClassCode, setCurrentClassCode] = useState<string | null>(null);
+
+  // Helper function to fetch class code
+  const fetchClassCode = async (className: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        `http://localhost:5051/api/Classes/code?className=${encodeURIComponent(
+          className
+        )}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch class code");
+      }
+      const data = await response.json();
+      return data.classCodeId;
+    } catch (error) {
+      console.error("Error fetching class code:", error);
+      return null;
+    }
+  };
+
+  // Update useEffect to handle both class code and exam selection
   useEffect(() => {
-    if (currentUser && currentUser.classes && currentUser.classes.length > 0 && !selectedCourse) {
+    if (selectedCourse) {
+      fetchClassCode(selectedCourse).then((classCode) => {
+        if (classCode) {
+          setCurrentClassCode(classCode);
+          // If an exam is selected, fetch counts for that exam
+          if (selectedExam) {
+            fetchQuestionCountsByExam(selectedExam[1]);
+          } else {
+            // Otherwise fetch counts for the whole class
+            fetchQuestionCounts(classCode);
+          }
+        }
+      });
+    }
+  }, [selectedCourse, selectedExam]);
+
+  useEffect(() => {
+    if (
+      currentUser &&
+      currentUser.classes &&
+      currentUser.classes.length > 0 &&
+      !selectedCourse
+    ) {
       setSelectedCourse(currentUser.classes[0]);
     }
   }, [currentUser, selectedCourse]);
+
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/Account/me`, {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      console.error("No token found");
+      router.push("/sign-in");
+      return;
+    }
+
+    fetch(`${API_URL}/Account/me`, {
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
-      .then((data) => setCurrentUser(data))
-      .catch((err) => console.error(err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("User data received:", data);
+        setCurrentUser(data);
+        if (data.classes && data.classes.length > 0 && !selectedCourse) {
+          setSelectedCourse(data.classes[0]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching user data:", err);
+        if (err.message === "Failed to fetch user data") {
+          router.push("/sign-in");
+        }
+      });
   }, []);
+
+  const fetchExamsForClass = async (className: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5051/api/Exam/byclassname?className=${encodeURIComponent(
+          className
+        )}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch exams");
+      }
+      const data = await response.json();
+      setExams(data);
+      if (data.length > 0) {
+        setSelectedExam([data[0].title, data[0].id]);
+      } else {
+        setSelectedExam(null);
+      }
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      setExams([]);
+      setSelectedExam(null);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchExamsForClass(selectedCourse);
+    }
+  }, [selectedCourse]);
+
 
   function getInitials(fullName?: string): string {
     if (!fullName) return "";
@@ -237,7 +421,10 @@ export default function StudentDashboardPage() {
     // Take the first character of the first word.
     const firstInitial = parts[0].charAt(0).toUpperCase();
     // If there's more than one word, take the first character of the last word.
-    const lastInitial = parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
+
+    const lastInitial =
+      parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
+
     return `${firstInitial}${lastInitial}`;
   }
 
@@ -318,11 +505,15 @@ export default function StudentDashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                  <span className="text-black font-medium text-lg">
-                  {getInitials(currentUser?.name)}
-                  </span>
+
+                    <span className="text-black font-medium text-lg">
+                      {getInitials(currentUser?.name)}
+                    </span>
                   </div>
-                  <span className="text-white font-medium">{currentUser?.name}</span>
+                  <span className="text-white font-medium">
+                    {currentUser?.name}
+                  </span>
+
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -432,9 +623,15 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center space-x-4">
                           <BookOpen className="h-8 w-8 text-blue-200" />
                           <div>
-                          <h3 className="text-2xl font-bold text-white mb-1">
-  {selectedCourse || currentUser?.classes[0]}
-</h3>
+
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                              {selectedCourse ||
+                                (!currentUser?.classes ||
+                                currentUser.classes.length === 0
+                                  ? "Not Enrolled"
+                                  : currentUser?.classes[0])}
+                            </h3>
+
                             <p className="text-blue-200">Current Course</p>
                           </div>
                         </div>
@@ -447,25 +644,27 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-                      {currentUser?.classes?.map((course, index) => (
-  <motion.div
-    key={course}
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: 10 }}
-    transition={{
-      duration: 0.2,
-      delay: index * 0.05,
-    }}
-  >
-    <DropdownMenuItem
-      onClick={() => setSelectedCourse(course)}
-      className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
-    >
-      {course}
-    </DropdownMenuItem>
-  </motion.div>
-))}
+
+                        {currentUser?.classes?.map((course, index) => (
+                          <motion.div
+                            key={course}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{
+                              duration: 0.2,
+                              delay: index * 0.05,
+                            }}
+                          >
+                            <DropdownMenuItem
+                              onClick={() => setSelectedCourse(course)}
+                              className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
+                            >
+                              {course}
+                            </DropdownMenuItem>
+                          </motion.div>
+                        ))}
+
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -497,7 +696,7 @@ export default function StudentDashboardPage() {
                           <ClipboardCheck className="h-8 w-8 text-purple-200" />
                           <div>
                             <h3 className="text-2xl font-bold text-white mb-1">
-                              Exam 1
+                              {selectedExam ? selectedExam[0] : "No Exams"}
                             </h3>
                             <p className="text-purple-200">Current Focus</p>
                           </div>
@@ -511,23 +710,31 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-                        {["Exam 1", "Final Exam", "Midterm Exam"].map(
-                          (exam, index) => (
-                            <motion.div
-                              key={exam}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: index * 0.05,
-                              }}
+                        {exams.map((exam, index) => (
+                          <motion.div
+                            key={exam.id}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{
+                              duration: 0.2,
+                              delay: index * 0.05,
+                            }}
+                          >
+                            <DropdownMenuItem
+                              className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1"
+                              onClick={() =>
+                                setSelectedExam([exam.title, exam.id])
+                              }
                             >
-                              <DropdownMenuItem className="text-white hover:text-white focus:text-white hover:bg-[#FF8C00]/20 focus:bg-[#FF8C00]/20 rounded-xl m-1">
-                                {exam}
-                              </DropdownMenuItem>
-                            </motion.div>
-                          )
+                              {exam.title}
+                            </DropdownMenuItem>
+                          </motion.div>
+                        ))}
+                        {exams.length === 0 && (
+                          <DropdownMenuItem className="text-gray-400 hover:text-gray-400 focus:text-gray-400 rounded-xl m-1 cursor-default">
+                            No exams available
+                          </DropdownMenuItem>
                         )}
                       </AnimatePresence>
                     </DropdownMenuContent>
@@ -540,47 +747,65 @@ export default function StudentDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                // Example for Flashcards:
-onClick={() => {
-  if (selectedCourse) {
-    router.push(`/student-dashboard/flashcards?class=${encodeURIComponent(selectedCourse)}`);
-  } else {
-    router.push(`/student-dashboard/flashcards`);
-  }
-}}
+
+                onClick={() => {
+                  if (selectedCourse) {
+                    const url = `/student-dashboard/flashcards?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
+                  } else {
+                    router.push(`/student-dashboard/flashcards`);
+                  }
+                }}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Flashcards
+                  </CardTitle>
                   <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                    Flashcards
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.flashcards}
                   </div>
-                  
+
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                
+
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(`/student-dashboard/true-false?class=${encodeURIComponent(selectedCourse)}`);
+                    const url = `/student-dashboard/true-false?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
+
                   } else {
                     router.push(`/student-dashboard/true-false`);
                   }
                 }}
-                
+
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    True/False Questions
+                  </CardTitle>
                   <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  True/False Questions
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.trueFalse}
                   </div>
-                  
+
                 </CardContent>
               </Card>
 
@@ -589,21 +814,31 @@ onClick={() => {
 
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(`/student-dashboard/multiple-choice?class=${encodeURIComponent(selectedCourse)}`);
+                    const url = `/student-dashboard/multiple-choice?class=${encodeURIComponent(
+                      selectedCourse
+                    )}`;
+                    const urlWithExam = selectedExam
+                      ? `${url}&examId=${selectedExam[1]}`
+                      : url;
+                    router.push(urlWithExam);
+
                   } else {
                     router.push(`/student-dashboard/multiple-choice`);
                   }
                 }}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                
+
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Multiple Choice
+                  </CardTitle>
                   <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  Multiple Choice
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.multipleChoice}
                   </div>
-                  
+
                 </CardContent>
               </Card>
 
@@ -611,14 +846,18 @@ onClick={() => {
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 onClick={() => router.push("/student-dashboard/practice-test")}
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
+
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+                  <CardTitle className="text-sm font-medium text-white group-hover:text-black">
+                    Practice Tests
+                  </CardTitle>
                   <ClipboardCheck className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  Practice Tests
+                  <div className="text-2xl font-bold text-white group-hover:text-black">
+                    {questionCounts.practiceTests}
                   </div>
-                  
+
                 </CardContent>
               </Card>
             </div>

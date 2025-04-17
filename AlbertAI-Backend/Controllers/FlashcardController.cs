@@ -4,6 +4,8 @@ using AlbertAI.Data;
 using AlbertAI.Models;
 using AlbertAI.Services;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AlbertAI.Controllers
 {
@@ -20,13 +22,38 @@ namespace AlbertAI.Controllers
             _aiService = aiService;
         }
 
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetAllFlashcards()
         {
             return await _context.Flashcards.ToListAsync();
         }
 
+        // GET: api/flashcard/bycode?classCode=ABC12345
+        [HttpGet("bycode")]
+        public async Task<IActionResult> GetFlashcardsByClassCode([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Join Flashcards with ClassCodes based on the Flashcard's ClassCodeId and the ClassCode's Id.
+            var flashcards = await _context.Flashcards
+                .Join(_context.ClassCodes,
+                    flashcard => flashcard.ClassCodeId,
+                    classEntity => classEntity.Id,
+                    (flashcard, classEntity) => new { Flashcard = flashcard, ClassCode = classEntity })
+                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
+                .Select(x => x.Flashcard)
+                .ToListAsync();
+
+            if (flashcards == null || flashcards.Count == 0)
+            {
+                return NotFound($"No flashcards found for class code: {classCode}");
+            }
+
+            return Ok(flashcards);
+        }
 
 
         // GET: api/flashcard/bycode?classCode=ABC12345
@@ -70,7 +97,6 @@ namespace AlbertAI.Controllers
 
             return Ok(flashcards);
         }
-
 
         [HttpPost]
         public async Task<ActionResult<Flashcard>> CreateFlashcard([FromBody] Flashcard flashcard)
@@ -241,6 +267,70 @@ Example response format:
                     new { question = $"What is a common misconception about {topic}?", answer = $"A common misconception about {topic} is that it is too complex or not relevant to daily life." }
                 };
             }
+        }
+
+        // GET: api/Flashcard/exam/{examId}
+        [HttpGet("exam/{examId}")]
+        public async Task<ActionResult<IEnumerable<Flashcard>>> GetByExamId(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            var flashcards = await _context.Flashcards
+                .Where(f => f.ExamId == examId)
+                .Include(f => f.Class)
+                .ToListAsync();
+
+            return Ok(flashcards);
+        }
+
+        // GET: api/flashcards/count?classCode=ABC12345
+        [HttpGet("count")]
+        public async Task<IActionResult> GetFlashcardsCount([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Get class code ID
+            var classCodeEntity = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == classCode.ToLower());
+            
+            if (classCodeEntity == null)
+            {
+                return NotFound($"Class code not found: {classCode}");
+            }
+
+            // Count flashcards for this class
+            var count = await _context.Flashcards
+                .Where(f => f.ClassCodeId == classCodeEntity.Id)
+                .CountAsync();
+
+            return Ok(new { count });
+        }
+
+        // GET: api/flashcards/examcount/{examId}
+        [HttpGet("examcount/{examId}")]
+        public async Task<IActionResult> GetFlashcardsCountByExam(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            // Count flashcards for this exam
+            var count = await _context.Flashcards
+                .Where(f => f.ExamId == examId)
+                .CountAsync();
+
+            return Ok(new { count });
         }
     }
 

@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MyBackend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250213182104_AddClassCodeTable")]
-    partial class AddClassCodeTable
+    [Migration("20250417053641_AddExamTable")]
+    partial class AddExamTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -61,6 +61,9 @@ namespace MyBackend.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Question")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -68,6 +71,35 @@ namespace MyBackend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Flashcards");
+                });
+
+            modelBuilder.Entity("AlbertAI.Models.TrueFalse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsTrue")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<double>("SuccessRate")
+                        .HasColumnType("double");
+
+                    b.Property<int>("TimesReviewed")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TrueFalses");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.User", b =>
@@ -118,6 +150,38 @@ namespace MyBackend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserClasses");
+                });
+
+            modelBuilder.Entity("albertai.models.MultipleChoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Choices")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("ClassCodeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MultipleChoices");
                 });
 
             modelBuilder.Entity("AlbertAI.Models.UserClass", b =>
