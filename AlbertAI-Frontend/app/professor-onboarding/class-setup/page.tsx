@@ -13,16 +13,42 @@ import Link from "next/link";
 export default function ClassSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [className, setClassName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Add class creation logic
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      // TODO: Get the professor's ID from context/state
+      const professorId = 1; // Placeholder
+
+      const response = await fetch("/api/classes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: courseCode,
+          className: className,
+          professorId: professorId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create class");
+      }
+
+      const data = await response.json();
+      // You might want to store the class ID somewhere
       router.push("/professor-onboarding/class-code");
-    }, 2000);
+    } catch (error) {
+      console.error("Error creating class:", error);
+      // TODO: Show error message to user
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,7 +99,7 @@ export default function ClassSetup() {
               Let's get your first class set up
             </h2>
             <p className="mt-2 text-lg text-gray-400">
-              Enter the name of your class to get started
+              Enter your class details to get started
             </p>
           </div>
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
@@ -92,6 +118,24 @@ export default function ClassSetup() {
                   disabled={isLoading}
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="courseCode" className="text-white">
+                  Course Code
+                </Label>
+                <Input
+                  id="courseCode"
+                  placeholder="Enter course code (e.g. CS101)"
+                  type="text"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  value={courseCode}
+                  onChange={(e) => setCourseCode(e.target.value)}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   required
                 />
