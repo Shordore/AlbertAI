@@ -8,6 +8,7 @@ import { StaticSparkles } from "@/components/static-sparkles";
 import { generateFlashcards } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSearchParams } from "next/navigation"; 
 
 interface Flashcard {
   front: string;
@@ -77,6 +78,77 @@ export default function FlashcardsPage() {
       setIsLoading(false);
     }
   };
+
+ 
+// Add this new helper function near the other functions in your file:
+const fetchClassCode = async (className: string): Promise<string | null> => {
+  try {
+    
+    const response = await fetch(`http://localhost:5051/api/Classes/code?className=${encodeURIComponent(className)}`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch class code");
+    }
+    const data = await response.json();
+    // We assume the response is in the form { classCodeId: "ABC12345" }
+    return data.classCodeId;
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Error fetching class code");
+    return null;
+  }
+};
+
+const fetchFlashcardsForClass = async (classCode: string) => {
+  setIsLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(`http://localhost:5051/api/flashcards/bycode?classCode=${encodeURIComponent(classCode)}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch flashcards for the selected class.");
+    }
+    const data = await response.json();
+    
+    if (Array.isArray(data) && data.length > 0) {
+      // Transform the API data { question, answer, ... } to { front, back }
+      const fetchedFlashcards = data.map((item: any) => ({
+        front: item.question,
+        back: item.answer,
+      }));
+
+      setFlashcards(fetchedFlashcards);
+      setTotalCards(fetchedFlashcards.length);
+      setCurrentIndex(0);
+      setIsFlipped(false);
+    } else {
+      setError("No flashcards available for the selected class.");
+    }
+  } catch (err: any) {
+    setError(err.message || "Error fetching flashcards.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// Instead, use the URL-derived className to call your API
+const searchParams = useSearchParams();
+const className = searchParams.get("class"); // e.g., "Computer Science 101"
+
+// New useEffect to fetch flashcards based on class name through the API
+useEffect(() => {
+  if (className) {
+    // First, fetch the class code from the API
+    fetchClassCode(className).then((classCode) => {
+      if (classCode) {
+        // Then, using the obtained class code, fetch the flashcards
+        fetchFlashcardsForClass(classCode);
+      } else {
+        setError("Class code not found for the selected class.");
+      }
+    });
+  }
+}, [className]);
+
+
 
   // Handle keyboard navigation
   useEffect(() => {

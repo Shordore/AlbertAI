@@ -28,6 +28,34 @@ namespace AlbertAI.Controllers
         }
 
 
+
+        // GET: api/flashcard/bycode?classCode=ABC12345
+        [HttpGet("bycode")]
+        public async Task<IActionResult> GetFlashcardsByClassCode([FromQuery] string classCode)
+        {
+            if (string.IsNullOrWhiteSpace(classCode))
+            {
+                return BadRequest("Parameter 'classCode' is required.");
+            }
+
+            // Join Flashcards with ClassCodes based on the Flashcard's ClassCodeId and the ClassCode's Id.
+            var flashcards = await _context.Flashcards
+                .Join(_context.ClassCodes,
+                    flashcard => flashcard.ClassCodeId,
+                    classEntity => classEntity.Id,
+                    (flashcard, classEntity) => new { Flashcard = flashcard, ClassCode = classEntity })
+                .Where(x => x.ClassCode.Code.ToLower() == classCode.ToLower())
+                .Select(x => x.Flashcard)
+                .ToListAsync();
+
+            if (flashcards == null || flashcards.Count == 0)
+            {
+                return NotFound($"No flashcards found for class code: {classCode}");
+            }
+
+            return Ok(flashcards);
+        }
+
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetFlashcardsByClass(int classCodeId)
         {
@@ -85,18 +113,18 @@ Example response format:
   }},
   ...
 ]";
-                
+
                 // Get response from AI service
                 string aiResponse = await _aiService.GetChatResponse(prompt, new List<ChatMessage>());
-                
+
                 Console.WriteLine($"AI Response: {aiResponse}"); // Debug logging
-                
+
                 // Parse the AI response as JSON
                 try
                 {
                     // Try to extract the JSON part from the response
                     string jsonContent = aiResponse;
-                    
+
                     // Sometimes the AI might include markdown code blocks or other text
                     if (aiResponse.Contains("```json"))
                     {
@@ -116,10 +144,10 @@ Example response format:
                             jsonContent = aiResponse.Substring(startIndex, endIndex - startIndex);
                         }
                     }
-                    
+
                     jsonContent = jsonContent.Trim();
                     Console.WriteLine($"Extracted JSON: {jsonContent}"); // Debug logging
-                    
+
                     // If parsing fails, use the mock response directly
                     if (string.IsNullOrWhiteSpace(jsonContent) || !jsonContent.StartsWith("["))
                     {
@@ -127,7 +155,7 @@ Example response format:
                         var fallbackFlashcards = GetFallbackFlashcards(request.Topic);
                         return Ok(fallbackFlashcards);
                     }
-                    
+
                     // Parse the JSON content
                     var flashcards = JsonSerializer.Deserialize<List<object>>(jsonContent);
                     return Ok(flashcards);
@@ -135,7 +163,7 @@ Example response format:
                 catch (JsonException ex)
                 {
                     Console.Error.WriteLine($"JSON parsing error: {ex.Message}");
-                    
+
                     // Return subject-specific fallback flashcards
                     var fallbackFlashcards = GetFallbackFlashcards(request.Topic);
                     return Ok(fallbackFlashcards);
@@ -152,7 +180,7 @@ Example response format:
         private List<object> GetFallbackFlashcards(string topic)
         {
             topic = topic.ToLower().Trim();
-            
+
             // World War 2 / WW2 flashcards
             if (topic.Contains("world war 2") || topic.Contains("worldwar2") || topic.Contains("ww2") || topic.Contains("world war ii"))
             {

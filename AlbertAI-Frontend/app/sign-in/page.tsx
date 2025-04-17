@@ -54,7 +54,7 @@ export default function SignInPage() {
       const token = data.Token;
 
       // Store token as needed (here using localStorage)
-      localStorage.setItem("token", token);
+      localStorage.setItem("token", data.token);
 
       setIsLoading(false);
       router.push("/student-dashboard");

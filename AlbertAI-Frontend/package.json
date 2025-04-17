@@ -10,6 +10,8 @@
     "build-no-check": "NEXT_SKIP_TYPE_CHECK=1 next build"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.7",
+    "@radix-ui/react-dropdown-menu": "^2.1.7",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-progress": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
@@ -24,6 +26,7 @@
     "react-day-picker": "^9.6.4",
     "react-dom": "^18",
     "recharts": "^2.15.2",
+    "sonner": "^2.0.3",
     "tailwind-merge": "^3.1.0",
     "tailwindcss-animate": "^1.0.7"
   },
