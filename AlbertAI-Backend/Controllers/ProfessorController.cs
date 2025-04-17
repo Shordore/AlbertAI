@@ -6,9 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using AlbertAI.Models.DTO;
 using AlbertAI.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace AlbertAI.Controllers
 {
+
+
     [Route("api/[controller]")]
     [ApiController]
     public class ProfessorController : ControllerBase
@@ -62,35 +65,63 @@ namespace AlbertAI.Controllers
         }
 
         // GET: api/professor/me
-        [HttpGet("me")]
-        public async Task<IActionResult> Me()
+        [HttpGet("me"), Authorize]
+        public async Task<ActionResult<ProfessorResponse>> GetCurrentProfessor()
         {
-            // extract professorId from JWT claims
-            var profId = int.Parse(User.FindFirst("id").Value);
-            var prof = await _context.Professors.FindAsync(profId);
-            if (prof == null) return NotFound();
+            // Extract the Email claim of the authenticated professor
+            var email = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(email))
+                return Unauthorized(new { message = "User not authenticated." });
 
-            return Ok(new
+            // Query the Professors table by email
+            var prof = await _context.Professors
+                .FirstOrDefaultAsync(p => p.Email == email);
+
+            if (prof == null)
+                return NotFound(new { message = "Professor not found." });
+
+            // Build the response DTO
+            var response = new ProfessorResponse
             {
-                id = prof.Id,
-                name = prof.Name,
-                email = prof.Email
-                // any other fields
-            });
+                Id = prof.Id,
+                Name = prof.Name,
+                Email = prof.Email
+            };
+
+            return Ok(response);
         }
 
         // PUT: api/professor/me
-        [HttpPut("me")]
-        public async Task<IActionResult> UpdateMe([FromBody] UpdateProfessorRequest dto)
+        [HttpPut("me"), Authorize]
+        public async Task<ActionResult<ProfessorResponse>> UpdateCurrentProfessor([FromBody] UpdateProfessorRequest dto)
         {
-            var profId = int.Parse(User.FindFirst("id").Value);
-            var prof = await _context.Professors.FindAsync(profId);
-            if (prof == null) return NotFound();
+            var emailClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(emailClaim))
+                return Unauthorized(new { message = "User not authenticated." });
 
-            prof.Name = dto.Name ?? prof.Name;
-            // etc…
+            var prof = await _context.Professors
+                .FirstOrDefaultAsync(p => p.Email == emailClaim);
+
+            if (prof == null)
+                return NotFound(new { message = "Professor not found." });
+
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+                prof.Name = dto.Name;
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+                prof.Email = dto.Email;
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+                prof.PasswordHash = _authenticator.HashPassword(dto.Password);
+
             await _context.SaveChangesAsync();
-            return Ok();
+
+            var response = new ProfessorResponse
+            {
+                Id = prof.Id,
+                Name = prof.Name,
+                Email = prof.Email
+            };
+
+            return Ok(response);
         }
     }
 }

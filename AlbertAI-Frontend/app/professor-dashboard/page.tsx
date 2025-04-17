@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import { CustomCalendar } from "@/components/ui/custom-calendar";
@@ -249,6 +249,18 @@ const notificationSortOptions = [
 
 export default function ProfessorDashboard() {
   const [selectedTimeframe, setSelectedTimeframe] = useState("1 Month");
+  const [currentUser, setCurrentUser] = useState<{ name: string } | null>(null);
+  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/professor/me`, {
+      headers: { "Authorization": `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setCurrentUser(data))
+      .catch((err) => console.error(err));
+  }, []);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([
     "completed",
     "scheduled",
@@ -284,6 +296,13 @@ export default function ProfessorDashboard() {
   );
   const examToDelete = exams.find((e) => e.id === deleteExamId);
   const router = useRouter();
+  
+  const initials = currentUser?.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase() || "";
 
   // Filter and sort exams
   const filteredExams = exams
@@ -474,9 +493,9 @@ export default function ProfessorDashboard() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                    <span className="text-black font-medium text-lg">JK</span>
+                    <span className="text-black font-medium text-lg">{initials}</span>
                   </div>
-                  <span className="text-white font-medium">Jacob Kantor</span>
+                   <span className="text-white font-medium">{currentUser?.name || ""}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
