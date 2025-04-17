@@ -122,11 +122,56 @@ export default function CreateExam() {
     setIsLoading(true);
     setLoadingPhase("preparing");
 
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setLoadingPhase("complete");
+    try {
+      // Get the auth token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push("/professor-dashboard/exams/1");
+      // First create the exam
+      const examResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/exam`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            classId: parseInt(selectedClass),
+            title: examName,
+            date: date?.toISOString(),
+          }),
+        }
+      );
+
+      if (!examResponse.ok) {
+        throw new Error("Failed to create exam");
+      }
+
+      const examData = await examResponse.json();
+      const examId = examData.id;
+
+      // Upload files and process exam content
+      if (files.length > 0) {
+        // For now we're just simulating the file upload process with a delay
+        // In a real implementation, this would upload files to the server
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+
+      setLoadingPhase("complete");
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Navigate to the newly created exam
+      router.push(`/professor-dashboard/exams/${examId}`);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      setIsLoading(false);
+      alert("Failed to create exam. Please try again.");
+    }
   };
 
   if (isLoading) {
