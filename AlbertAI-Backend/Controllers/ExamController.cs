@@ -92,5 +92,49 @@ namespace AlbertAI.Controllers
 
             return Ok(exams);
         }
+
+        // GET: api/Exam/byprofessor/{professorId}
+        [HttpGet("byprofessor/{professorId}")]
+        public async Task<IActionResult> GetExamsByProfessor(int professorId)
+        {
+            // Check if professor exists
+            bool professorExists = await _context.Professors.AnyAsync(p => p.Id == professorId);
+            if (!professorExists)
+            {
+                return NotFound($"Professor with ID {professorId} not found.");
+            }
+
+            // Get all classes taught by this professor
+            var professorClasses = await _context.ClassCodes
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (!professorClasses.Any())
+            {
+                return NotFound($"No classes found for professor with ID {professorId}");
+            }
+
+            // Get all exams for these classes
+            var exams = await _context.Exams
+                .Where(e => professorClasses.Contains(e.ClassId))
+                .Include(e => e.Class)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Date,
+                    ClassName = e.Class.ClassName,
+                    ClassCode = e.Class.Code
+                })
+                .ToListAsync();
+
+            if (!exams.Any())
+            {
+                return NotFound($"No exams found for professor with ID {professorId}");
+            }
+
+            return Ok(exams);
+        }
     }
 } 
