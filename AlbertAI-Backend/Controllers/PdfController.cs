@@ -119,6 +119,38 @@ namespace AlbertAI.Controllers
                     Console.WriteLine($"Error saving multiple choice questions to database: {ex.Message}");
                 }
 
+                // Save flashcards to the database
+                try 
+                {
+                    var flashcardsJson = JsonDocument.Parse(flashcards).RootElement;
+                    
+                    // Iterate through flashcards and save to database
+                    for (int i = 0; i < flashcardsJson.GetArrayLength(); i++)
+                    {
+                        var cardJson = flashcardsJson[i];
+                        
+                        // Create new Flashcard object
+                        var flashcard = new Flashcard
+                        {
+                            Question = cardJson.GetProperty("front").GetString(),
+                            Answer = cardJson.GetProperty("back").GetString(),
+                            Category = "flashcards", // Set category to "flashcards" by default
+                            ClassCodeId = classCodeId
+                        };
+                        
+                        // Add to database
+                        _context.Flashcards.Add(flashcard);
+                    }
+                    
+                    // Save changes to database
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail the request
+                    Console.WriteLine($"Error saving flashcards to database: {ex.Message}");
+                }
+
                 // Create combined result
                 var result = new
                 {
