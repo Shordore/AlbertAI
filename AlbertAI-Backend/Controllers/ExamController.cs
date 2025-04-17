@@ -60,5 +60,37 @@ namespace AlbertAI.Controllers
 
             return exam;
         }
+
+        // GET: api/Exam/byclassname?className=Biology 101
+        [HttpGet("byclassname")]
+        public async Task<IActionResult> GetExamsByClassName([FromQuery] string className)
+        {
+            if (string.IsNullOrWhiteSpace(className))
+            {
+                return BadRequest("Parameter 'className' is required.");
+            }
+
+            // First, get the class code for the given class name
+            var classCode = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.ClassName.ToLower() == className.ToLower());
+
+            if (classCode == null)
+            {
+                return NotFound($"No class found with name: {className}");
+            }
+
+            // Then, get all exams for this class
+            var exams = await _context.Exams
+                .Where(e => e.ClassId == classCode.Id)
+                .Select(e => new { e.Title, e.Id })
+                .ToListAsync();
+
+            if (!exams.Any())
+            {
+                return NotFound($"No exams found for class: {className}");
+            }
+
+            return Ok(exams);
+        }
     }
 } 
