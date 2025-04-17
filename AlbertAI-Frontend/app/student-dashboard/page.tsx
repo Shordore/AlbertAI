@@ -1,8 +1,4 @@
-
-
 "use client";
-
-
 
 import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
@@ -211,23 +207,57 @@ export default function StudentDashboardPage() {
   });
   const router = useRouter();
 
-  const [currentUser, setCurrentUser] = useState<{ name: string; classes: string[] } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    classes: string[];
+  } | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   useEffect(() => {
-    if (currentUser && currentUser.classes && currentUser.classes.length > 0 && !selectedCourse) {
+    if (
+      currentUser &&
+      currentUser.classes &&
+      currentUser.classes.length > 0 &&
+      !selectedCourse
+    ) {
       setSelectedCourse(currentUser.classes[0]);
     }
   }, [currentUser, selectedCourse]);
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/Account/me`, {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      console.error("No token found");
+      router.push("/sign-in");
+      return;
+    }
+
+    fetch(`${API_URL}/Account/me`, {
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
-      .then((data) => setCurrentUser(data))
-      .catch((err) => console.error(err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("User data received:", data);
+        setCurrentUser(data);
+        if (data.classes && data.classes.length > 0 && !selectedCourse) {
+          setSelectedCourse(data.classes[0]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching user data:", err);
+        if (err.message === "Failed to fetch user data") {
+          router.push("/sign-in");
+        }
+      });
   }, []);
 
   function getInitials(fullName?: string): string {
@@ -237,7 +267,8 @@ export default function StudentDashboardPage() {
     // Take the first character of the first word.
     const firstInitial = parts[0].charAt(0).toUpperCase();
     // If there's more than one word, take the first character of the last word.
-    const lastInitial = parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
+    const lastInitial =
+      parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
     return `${firstInitial}${lastInitial}`;
   }
 
@@ -318,11 +349,13 @@ export default function StudentDashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                  <span className="text-black font-medium text-lg">
-                  {getInitials(currentUser?.name)}
-                  </span>
+                    <span className="text-black font-medium text-lg">
+                      {getInitials(currentUser?.name)}
+                    </span>
                   </div>
-                  <span className="text-white font-medium">{currentUser?.name}</span>
+                  <span className="text-white font-medium">
+                    {currentUser?.name}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -432,9 +465,9 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center space-x-4">
                           <BookOpen className="h-8 w-8 text-blue-200" />
                           <div>
-                          <h3 className="text-2xl font-bold text-white mb-1">
-  {selectedCourse || currentUser?.classes[0]}
-</h3>
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                              {selectedCourse || currentUser?.classes[0]}
+                            </h3>
                             <p className="text-blue-200">Current Course</p>
                           </div>
                         </div>
@@ -447,25 +480,25 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-                      {currentUser?.classes?.map((course, index) => (
-  <motion.div
-    key={course}
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: 10 }}
-    transition={{
-      duration: 0.2,
-      delay: index * 0.05,
-    }}
-  >
-    <DropdownMenuItem
-      onClick={() => setSelectedCourse(course)}
-      className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
-    >
-      {course}
-    </DropdownMenuItem>
-  </motion.div>
-))}
+                        {currentUser?.classes?.map((course, index) => (
+                          <motion.div
+                            key={course}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{
+                              duration: 0.2,
+                              delay: index * 0.05,
+                            }}
+                          >
+                            <DropdownMenuItem
+                              onClick={() => setSelectedCourse(course)}
+                              className="text-white hover:text-white focus:text-white hover:bg-[#3B4CCA]/20 focus:bg-[#3B4CCA]/20 rounded-xl m-1"
+                            >
+                              {course}
+                            </DropdownMenuItem>
+                          </motion.div>
+                        ))}
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -541,69 +574,73 @@ export default function StudentDashboardPage() {
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 // Example for Flashcards:
-onClick={() => {
-  if (selectedCourse) {
-    router.push(`/student-dashboard/flashcards?class=${encodeURIComponent(selectedCourse)}`);
-  } else {
-    router.push(`/student-dashboard/flashcards`);
-  }
-}}
+                onClick={() => {
+                  if (selectedCourse) {
+                    router.push(
+                      `/student-dashboard/flashcards?class=${encodeURIComponent(
+                        selectedCourse
+                      )}`
+                    );
+                  } else {
+                    router.push(`/student-dashboard/flashcards`);
+                  }
+                }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                
                   <BookOpen className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
                     Flashcards
                   </div>
-                  
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-                
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(`/student-dashboard/true-false?class=${encodeURIComponent(selectedCourse)}`);
+                    router.push(
+                      `/student-dashboard/true-false?class=${encodeURIComponent(
+                        selectedCourse
+                      )}`
+                    );
                   } else {
                     router.push(`/student-dashboard/true-false`);
                   }
                 }}
-                
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
                   <CheckSquare className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  True/False Questions
+                    True/False Questions
                   </div>
-                  
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-
                 onClick={() => {
                   if (selectedCourse) {
-                    router.push(`/student-dashboard/multiple-choice?class=${encodeURIComponent(selectedCourse)}`);
+                    router.push(
+                      `/student-dashboard/multiple-choice?class=${encodeURIComponent(
+                        selectedCourse
+                      )}`
+                    );
                   } else {
                     router.push(`/student-dashboard/multiple-choice`);
                   }
                 }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6">
-                
                   <ListChecks className="h-4 w-4 text-white group-hover:text-black group-hover:h-6 group-hover:w-6 transition-all" />
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  Multiple Choice
+                    Multiple Choice
                   </div>
-                  
                 </CardContent>
               </Card>
 
@@ -616,9 +653,8 @@ onClick={() => {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="text-3xl font-bold text-white group-hover:text-black mb-2">
-                  Practice Tests
+                    Practice Tests
                   </div>
-                  
                 </CardContent>
               </Card>
             </div>
