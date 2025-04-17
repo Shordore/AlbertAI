@@ -155,11 +155,38 @@ export default function CreateExam() {
       const examData = await examResponse.json();
       const examId = examData.id;
 
-      // Upload files and process exam content
+      // Upload files and generate AI questions
       if (files.length > 0) {
-        // For now we're just simulating the file upload process with a delay
-        // In a real implementation, this would upload files to the server
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Create FormData to upload files
+        const formData = new FormData();
+
+        // Add each file to the formData
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+
+        // Add the classCodeId and examId
+        formData.append("classCodeId", selectedClass);
+        formData.append("examId", examId.toString());
+
+        // Call the GenerateAIQuestions API
+        const generateResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/GenerateAIQuestions/upload`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              // Don't set Content-Type header when using FormData - browser will set it with boundary
+            },
+            body: formData,
+          }
+        );
+
+        if (!generateResponse.ok) {
+          throw new Error("Failed to generate questions");
+        }
       }
 
       setLoadingPhase("complete");
