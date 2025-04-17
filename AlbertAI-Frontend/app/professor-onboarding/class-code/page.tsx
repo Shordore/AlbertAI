@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
@@ -12,11 +12,61 @@ import Link from "next/link";
 export default function ClassCode() {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
-  // TODO: Replace with actual class code from backend
-  const classCode = "ABC123";
+  const [classCode, setClassCode] = useState("Loading...");
+  const [classId, setClassId] = useState<string | null>(null);
+  const [className, setClassName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Get the class ID from session storage
+    const storedClassId = sessionStorage.getItem("classId");
+    if (storedClassId) {
+      setClassId(storedClassId);
+
+      // Fetch class details from API
+      const fetchClassDetails = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (!token) {
+            setIsLoading(false);
+            return;
+          }
+
+          const response = await fetch(
+            `${
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+            }/api/classes/${storedClassId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            setClassCode(data.code || "ABC123");
+            setClassName(data.className || "Your Class");
+          }
+        } catch (error) {
+          console.error("Error fetching class details:", error);
+          // Fallback to a default code
+          setClassCode("ABC123");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchClassDetails();
+    } else {
+      // Fallback if no class ID is found
+      setClassCode("ABC123");
+      setIsLoading(false);
+    }
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(classCode);
+    navigator.clipboard.writeText(classId || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -76,19 +126,34 @@ export default function ClassCode() {
               Share this code with your students so they can join your class
             </p>
           </div>
+
+          {className && (
+            <div className="text-center">
+              <p className="text-md text-white">
+                Class: <span className="font-medium">{className}</span>
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center justify-center space-x-2">
             <div className="text-2xl font-bold bg-white/10 px-4 py-2 rounded-md text-white">
-              {classCode}
+              {isLoading ? (
+                <Icons.spinner className="h-4 w-4 animate-spin mx-auto" />
+              ) : (
+                classId || "Loading..."
+              )}
             </div>
             <Button
               variant="outline"
               size="icon"
               onClick={handleCopy}
               className="h-10 w-10 text-white hover:bg-white/10"
+              disabled={isLoading}
             >
               <Copy className="h-4 w-4" />
             </Button>
           </div>
+
           {copied && (
             <p className="text-center text-sm text-green-400">
               Code copied to clipboard!
