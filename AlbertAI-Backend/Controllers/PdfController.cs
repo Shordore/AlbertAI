@@ -8,6 +8,10 @@ using System.Text;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using AlbertAI.Data;
+using albertai.models;
+using Microsoft.EntityFrameworkCore;
+using AlbertAI.Models;
 
 namespace AlbertAI.Controllers
 {
@@ -18,22 +22,31 @@ namespace AlbertAI.Controllers
         private readonly HttpClient _httpClient;
         private readonly string _azureApiKey;
         private readonly string _azureEndpoint;
+        private readonly AppDbContext _context;
 
-        public GenerateAIQuestionsController()
+        public GenerateAIQuestionsController(AppDbContext context)
         {
             _httpClient = new HttpClient();
             _azureApiKey = "6voYXKDGzVwTUMDVM4GXLB1mFpZwxNS6dfa2EWokZlorrYDCByGbJQQJ99BDACHYHv6XJ3w3AAAAACOGeKgb";
             _azureEndpoint = "https://sean-m9j7qnes-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview";
+            _context = context;
         }
 
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files, [FromHeader] string classCode)
+        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files, [FromForm] int classCodeId)
         {
-            if (string.IsNullOrEmpty(classCode))
-                return BadRequest("Class code is required in the header.");
+            if (classCodeId <= 0)
+                return BadRequest("Valid ClassCodeId is required in the request body.");
 
             if (files == null || files.Count == 0)
                 return BadRequest("No files were uploaded.");
+
+            // Get the class information from the classCodeId
+            var classCodeEntity = await _context.ClassCodes.FirstOrDefaultAsync(c => c.Id == classCodeId);
+            if (classCodeEntity == null)
+                return BadRequest("Invalid class code ID. Please provide a valid class code ID.");
+
+            string className = classCodeEntity.ClassName;
 
             var combinedText = new StringBuilder();
 
@@ -68,33 +81,42 @@ namespace AlbertAI.Controllers
 
             try
             {
-                // Generate different types of questions
-                var multipleChoiceQuestions = await GenerateMultipleChoiceQuestionsAsync(pdfContent, classCode);
-                var trueFalseQuestions = await GenerateTrueFalseQuestionsAsync(pdfContent, classCode);
-                var flashcards = await GenerateFlashcardsAsync(pdfContent, classCode);
-                
-                // Save files (if server has write access)
-                try
+                // Generate different types of questions using className instead of classCode
+                var multipleChoiceQuestions = await GenerateMultipleChoiceQuestionsAsync(pdfContent, className);
+                var trueFalseQuestions = await GenerateTrueFalseQuestionsAsync(pdfContent, className);
+                var flashcards = await GenerateFlashcardsAsync(pdfContent, className);
+
+                // Save multiple choice questions to the database
+                try 
                 {
-                    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "GeneratedQuestions");
-                    Directory.CreateDirectory(basePath);
+                    var mcQuestions = JsonDocument.Parse(multipleChoiceQuestions).RootElement;
                     
-                    await System.IO.File.WriteAllTextAsync(
-                        Path.Combine(basePath, "multiple_choice_questions.json"), 
-                        multipleChoiceQuestions);
+                    // Iterate through questions and save to database
+                    for (int i = 0; i < mcQuestions.GetArrayLength(); i++)
+                    {
+                        var questionJson = mcQuestions[i];
                         
-                    await System.IO.File.WriteAllTextAsync(
-                        Path.Combine(basePath, "true_false_questions.json"), 
-                        trueFalseQuestions);
+                        // Create new MultipleChoice object
+                        var mcQuestion = new MultipleChoice
+                        {
+                            Question = questionJson.GetProperty("question").GetString(),
+                            Choices = questionJson.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ToList(),
+                            Answer = questionJson.GetProperty("answer").GetString(),
+                            ClassCodeId = classCodeId,
+                            Category = "mpc" // Set category to "mpc" for multiple choice
+                        };
                         
-                    await System.IO.File.WriteAllTextAsync(
-                        Path.Combine(basePath, "flashcards.json"), 
-                        flashcards);
+                        // Add to database
+                        _context.MultipleChoices.Add(mcQuestion);
+                    }
+                    
+                    // Save changes to database
+                    await _context.SaveChangesAsync();
                 }
                 catch (Exception ex)
                 {
-                    // Just log the error, don't fail the whole request
-                    Console.WriteLine($"Error saving question files: {ex.Message}");
+                    // Log error but don't fail the request
+                    Console.WriteLine($"Error saving multiple choice questions to database: {ex.Message}");
                 }
 
                 // Create combined result
@@ -113,13 +135,13 @@ namespace AlbertAI.Controllers
             }
         }
 
-        private async Task<string> GenerateMultipleChoiceQuestionsAsync(string pdfContent, string classCode)
+        private async Task<string> GenerateMultipleChoiceQuestionsAsync(string pdfContent, string className)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Generate EXACTLY 50 multiple choice questions. They should be questions about {classCode} topics. Each question must be a JSON object with:
+Generate EXACTLY 30 multiple choice questions. They should be questions about {className} topics. Each question must be a JSON object with:
 - question: string
 - options: array of 4 strings
 - answer: string (must match one of the options)
@@ -138,13 +160,13 @@ Example format:
             return await CallAzureOpenAIAsync(prompt);
         }
 
-        private async Task<string> GenerateTrueFalseQuestionsAsync(string pdfContent, string classCode)
+        private async Task<string> GenerateTrueFalseQuestionsAsync(string pdfContent, string className)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Generate EXACTLY 50 true/false questions about {classCode} topics. Each question must be a JSON object with:
+Generate EXACTLY 30 true/false questions about {className} topics. Each question must be a JSON object with:
 - statement: string
 - answer: boolean (true or false)
 
@@ -161,13 +183,13 @@ Example format:
             return await CallAzureOpenAIAsync(prompt);
         }
 
-        private async Task<string> GenerateFlashcardsAsync(string pdfContent, string classCode)
+        private async Task<string> GenerateFlashcardsAsync(string pdfContent, string className)
         {
             string prompt = $@"Based on the following content:
 ---
 {pdfContent}
 ---
-Create EXACTLY 50 flashcards about {classCode} topics. Each flashcard must be a JSON object with:
+Create EXACTLY 30 flashcards about {className} topics. Each flashcard must be a JSON object with:
 - front: string (question or prompt)
 - back: string (answer or explanation)
 
