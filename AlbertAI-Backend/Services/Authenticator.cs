@@ -21,13 +21,13 @@ namespace AlbertAI.Services
         }
 
         // Register a new user and save to the database
-        public async Task<bool> RegisterAsync(string ufid, string password, string name)
+        public async Task<bool> RegisterAsync(string email, string password, string name)
         {
-            // Check if the UFID already exists in the database
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UFID == ufid);
+            // Check if the Email already exists in the database
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (existingUser != null)
             {
-                return false; // UFID already exists
+                return false; // Email already exists
             }
 
             // Hash the password
@@ -36,7 +36,7 @@ namespace AlbertAI.Services
             // Create a new user object
             var newUser = new User
             {
-                UFID = ufid,
+                Email = email,
                 PasswordHash = hashedPassword,
                 Name = name,
             };
@@ -58,27 +58,27 @@ namespace AlbertAI.Services
                 return BitConverter.ToString(bytes).Replace("-", "").ToLower();
             }
         }
-        public async Task<string> AuthenticateAsync(string ufid, string password)
+        public async Task<string> AuthenticateAsync(string Email, string password)
         {
-            // Check if the UFID exists in the database
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UFID == ufid);
+            // Check if the Email exists in the database
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == Email);
 
             // If user is not found or password doesn't match, return null
             if (user == null || !VerifyPassword(password, user.PasswordHash))
                 return null;
 
             // Generate JWT token after successful authentication
-            return GenerateToken(ufid);
+            return GenerateToken(Email);
         }
 
-        private string GenerateToken(string ufid)
+        private string GenerateToken(string Email)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("ySvy7VglFD8SKLg1wgH28e9CcoQbyH6nDHdCK6JrCgs=");
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, ufid) }),
+                Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, Email) }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };

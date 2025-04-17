@@ -36,9 +36,9 @@ namespace AlbertAI.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Unique index on User.UFID
+            // Unique index on User.Email
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.UFID)
+                .HasIndex(u => u.Email)
                 .IsUnique();
         }
     }

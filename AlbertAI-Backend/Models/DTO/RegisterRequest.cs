@@ -7,7 +7,7 @@ namespace AlbertAI.Models.DTO
 
     {
 
-        public string UFID { get; set; }
+        public string Email { get; set; }
 
         public string Password { get; set; }
 

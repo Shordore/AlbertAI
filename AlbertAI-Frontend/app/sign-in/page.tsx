@@ -24,13 +24,13 @@ export default function SignInPage() {
     setErrorMsg("");
 
     const formData = new FormData(event.currentTarget);
-    // Use "ufid" if that's what your backend expects instead of "email"
-    const ufid = formData.get("ufid");
+    // Use "email" if that's what your backend expects instead of "email"
+    const email = formData.get("email");
     const password = formData.get("password");
 
     // Construct the request body matching your backend LoginRequest DTO
     const requestBody = {
-      UFID: ufid,
+      email: email,
       Password: password
     };
 
@@ -122,14 +122,14 @@ export default function SignInPage() {
           <form onSubmit={onSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ufid" className="text-white">
-                  UFID
+                <Label htmlFor="email" className="text-white">
+                  Email
                 </Label>
                 <Input
-                  id="ufid"
-                  name="ufid"
-                  placeholder="Enter your UFID"
-                  type="text"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  type="email"
                   autoCapitalize="none"
                   autoComplete="username"
                   autoCorrect="off"

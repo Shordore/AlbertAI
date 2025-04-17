@@ -44,10 +44,10 @@ namespace AlbertAI.Controllers
             if (classEntry == null)
                 return BadRequest(new { message = "Invalid course code. Please enter a valid code to register." });
 
-            // Check if the UFID already exists
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.UFID == request.UFID);
+            // Check if the Email already exists
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (existingUser != null)
-                return BadRequest(new { message = "UFID already exists. Please choose a different UFID." });
+                return BadRequest(new { message = "Email already exists. Please choose a different Email." });
 
             // Hash the password
             var passwordHash = _authenticator.HashPassword(request.Password);
@@ -55,7 +55,7 @@ namespace AlbertAI.Controllers
             // Create new user
             var newUser = new User
             {
-                UFID = request.UFID,
+                Email = request.Email,
                 PasswordHash = passwordHash,
                 Name = request.Name,
                 UserClasses = new List<UserClass>() // Initialize user class list
@@ -65,7 +65,7 @@ namespace AlbertAI.Controllers
             await _context.SaveChangesAsync(); // Save user first to generate an ID
 
             // Ensure the user has an ID before adding classes
-            var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.UFID == request.UFID);
+            var userFromDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (userFromDb == null)
                 return BadRequest(new { message = "User registration failed unexpectedly." });
 
@@ -92,9 +92,9 @@ namespace AlbertAI.Controllers
                 return BadRequest(ModelState);
 
             // Attempt to authenticate the user and retrieve a token
-            var token = await _authenticator.AuthenticateAsync(request.UFID, request.Password);
+            var token = await _authenticator.AuthenticateAsync(request.Email, request.Password);
             if (token == null)
-                return Unauthorized(new { message = "Invalid UFID or password." });
+                return Unauthorized(new { message = "Invalid Email or password." });
 
             // Return the authentication token upon successful login
             return Ok(new { Token = token });
@@ -104,15 +104,15 @@ namespace AlbertAI.Controllers
         [HttpGet("me")]
         public async Task<ActionResult<UserResponse>> GetCurrentUser()
         {
-            // Extract the UFID of the authenticated user
-            var ufid = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (ufid == null)
+            // Extract the Email of the authenticated user
+            var Email = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Email == null)
                 return Unauthorized(new { message = "User not authenticated." });
 
             // Include UserClasses in the query
             var user = await _context.Users
                 .Include(u => u.UserClasses) // Ensure classes are loaded
-                .FirstOrDefaultAsync(u => u.UFID == ufid);
+                .FirstOrDefaultAsync(u => u.Email == Email);
 
             if (user == null)
                 return NotFound(new { message = "User not found." });
@@ -121,7 +121,7 @@ namespace AlbertAI.Controllers
             var response = new UserResponse
             {
                 Id = user.Id,
-                UFID = user.UFID,
+                Email = user.Email,
                 Name = user.Name,
                 Classes = user.UserClasses.Select(uc => uc.ClassName).ToList()
             };
@@ -136,15 +136,15 @@ namespace AlbertAI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Extract the UFID of the authenticated user
-            var ufid = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (ufid == null)
+            // Extract the Email of the authenticated user
+            var Email = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Email == null)
                 return Unauthorized(new { message = "User not authenticated." });
 
             // Find the user in the database
             var user = await _context.Users
                 .Include(u => u.UserClasses) // Include existing user classes
-                .FirstOrDefaultAsync(u => u.UFID == ufid);
+                .FirstOrDefaultAsync(u => u.Email == Email);
 
             if (user == null)
                 return NotFound(new { message = "User not found." });

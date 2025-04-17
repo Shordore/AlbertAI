@@ -24,14 +24,14 @@ export default function SignUpPage() {
     setErrorMsg("");
 
     const formData = new FormData(event.currentTarget);
-    const UFID = formData.get("ufid");
+    const email = formData.get("email");
     const password = formData.get("password");
     const name = formData.get("name");
     const classCode = formData.get("classCode");
 
     // Construct the JSON body matching your backend RegisterRequest DTO
     const requestBody = {
-      UFID: UFID,
+      email: email,
       Password: password,
       Name: name,
       classCode: classCode
@@ -129,16 +129,16 @@ export default function SignUpPage() {
                   required
                 />
               </div>
-              {/* UFID Field */}
+              {/* email Field */}
               <div className="space-y-2">
-                <Label htmlFor="ufid" className="text-white">
-                  UFID
+                <Label htmlFor="email" className="text-white">
+                  Email
                 </Label>
                 <Input
-                  id="ufid"
-                  name="ufid"
-                  placeholder="Enter your UFID"
-                  type="text"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  type="email"
                   autoCapitalize="none"
                   autoComplete="username"
                   disabled={isLoading}
