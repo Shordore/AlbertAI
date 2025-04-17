@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Upload, Calendar as CalendarIcon, X } from "lucide-react";
@@ -28,6 +28,50 @@ export default function CreateExam() {
     date?: string;
     files?: string;
   }>({});
+  const [classes, setClasses] = useState<
+    Array<{ id: number; code: string; className: string }>
+  >([]);
+  const [professorId, setProfessorId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch the current professor's ID
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+      }/api/professor/me`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setProfessorId(data.id);
+        // After getting the professor ID, fetch their classes
+        fetchProfessorClasses(data.id, token);
+      })
+      .catch((err) => console.error("Error fetching professor data:", err));
+  }, []);
+
+  const fetchProfessorClasses = (profId: number, token: string) => {
+    fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+      }/api/classes/professor/${profId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setClasses(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching professor classes:", err));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -219,9 +263,11 @@ export default function CreateExam() {
                   }`}
                 >
                   <option value="">Select a class</option>
-                  <option value="biology101">Biology 101</option>
-                  <option value="chemistry101">Chemistry 101</option>
-                  <option value="physics101">Physics 101</option>
+                  {classes.map((classItem) => (
+                    <option key={classItem.id} value={classItem.id.toString()}>
+                      {classItem.className} ({classItem.code})
+                    </option>
+                  ))}
                 </select>
                 {errors.selectedClass && (
                   <p className="mt-1 text-sm text-red-500">

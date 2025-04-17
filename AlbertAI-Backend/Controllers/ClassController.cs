@@ -98,5 +98,28 @@ namespace AlbertAI.Controllers
             // Return the classCodeId in a JSON response.
             return Ok(new { classCodeId = classCodeEntity.Code });
         }
+
+        // GET: api/classes/professor/{professorId}
+        [HttpGet("professor/{professorId}")]
+        public async Task<IActionResult> GetClassesByProfessorId(int professorId)
+        {
+            var classes = await _context.ClassCodes
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Code,
+                    c.ClassName,
+                    c.ProfessorId
+                })
+                .ToListAsync();
+
+            if (!classes.Any())
+            {
+                return NotFound($"No classes found for professor with ID: {professorId}");
+            }
+
+            return Ok(classes);
+        }
     }
 }
