@@ -33,7 +33,7 @@ namespace AlbertAI.Controllers
         }
 
         [HttpPost("upload")]
-        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files, [FromForm] int classCodeId)
+        public async Task<IActionResult> UploadPdfs([FromForm] List<IFormFile> files, [FromForm] int classCodeId, [FromForm] int? examId)
         {
             if (classCodeId <= 0)
                 return BadRequest("Valid ClassCodeId is required in the request body.");
@@ -45,6 +45,16 @@ namespace AlbertAI.Controllers
             var classCodeEntity = await _context.ClassCodes.FirstOrDefaultAsync(c => c.Id == classCodeId);
             if (classCodeEntity == null)
                 return BadRequest("Invalid class code ID. Please provide a valid class code ID.");
+
+            // Verify exam exists if examId is provided
+            if (examId.HasValue)
+            {
+                var examExists = await _context.Exams.AnyAsync(e => e.Id == examId.Value);
+                if (!examExists)
+                {
+                    return BadRequest($"Exam with ID {examId.Value} not found.");
+                }
+            }
 
             string className = classCodeEntity.ClassName;
 
@@ -103,7 +113,8 @@ namespace AlbertAI.Controllers
                             Choices = questionJson.GetProperty("options").EnumerateArray().Select(o => o.GetString()).ToList(),
                             Answer = questionJson.GetProperty("answer").GetString(),
                             ClassCodeId = classCodeId,
-                            Category = "mpc" // Set category to "mpc" for multiple choice
+                            Category = "mpc", // Set category to "mpc" for multiple choice
+                            ExamId = examId // Set the exam ID if provided
                         };
                         
                         // Add to database
@@ -135,7 +146,8 @@ namespace AlbertAI.Controllers
                             Question = cardJson.GetProperty("front").GetString(),
                             Answer = cardJson.GetProperty("back").GetString(),
                             Category = "flashcards", // Set category to "flashcards" by default
-                            ClassCodeId = classCodeId
+                            ClassCodeId = classCodeId,
+                            ExamId = examId // Set the exam ID if provided
                         };
                         
                         // Add to database
@@ -168,7 +180,8 @@ namespace AlbertAI.Controllers
                             IsTrue = questionJson.GetProperty("answer").GetBoolean(),
                             TimesReviewed = 0, // Default 0 for TimesReviewed
                             SuccessRate = 0, // Default 0 for SuccessRate
-                            ClassCodeId = classCodeId
+                            ClassCodeId = classCodeId,
+                            ExamId = examId // Set the exam ID if provided
                         };
                         
                         // Add to database

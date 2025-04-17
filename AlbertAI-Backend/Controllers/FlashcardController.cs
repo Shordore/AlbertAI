@@ -4,6 +4,8 @@ using AlbertAI.Data;
 using AlbertAI.Models;
 using AlbertAI.Services;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AlbertAI.Controllers
 {
@@ -20,14 +22,11 @@ namespace AlbertAI.Controllers
             _aiService = aiService;
         }
 
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Flashcard>>> GetAllFlashcards()
         {
             return await _context.Flashcards.ToListAsync();
         }
-
-
 
         // GET: api/flashcard/bycode?classCode=ABC12345
         [HttpGet("bycode")]
@@ -70,7 +69,6 @@ namespace AlbertAI.Controllers
 
             return Ok(flashcards);
         }
-
 
         [HttpPost]
         public async Task<ActionResult<Flashcard>> CreateFlashcard([FromBody] Flashcard flashcard)
@@ -241,6 +239,25 @@ Example response format:
                     new { question = $"What is a common misconception about {topic}?", answer = $"A common misconception about {topic} is that it is too complex or not relevant to daily life." }
                 };
             }
+        }
+
+        // GET: api/Flashcard/exam/{examId}
+        [HttpGet("exam/{examId}")]
+        public async Task<ActionResult<IEnumerable<Flashcard>>> GetByExamId(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            var flashcards = await _context.Flashcards
+                .Where(f => f.ExamId == examId)
+                .Include(f => f.Class)
+                .ToListAsync();
+
+            return Ok(flashcards);
         }
     }
 

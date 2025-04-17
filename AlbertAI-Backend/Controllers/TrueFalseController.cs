@@ -103,6 +103,25 @@ namespace AlbertAI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        // GET: api/TrueFalse/exam/{examId}
+        [HttpGet("exam/{examId}")]
+        public async Task<ActionResult<IEnumerable<TrueFalse>>> GetByExamId(int examId)
+        {
+            // Verify exam exists
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            var questions = await _context.TrueFalses
+                .Where(q => q.ExamId == examId)
+                .Include(q => q.Class)
+                .ToListAsync();
+
+            return Ok(questions);
+        }
     }
 }
 

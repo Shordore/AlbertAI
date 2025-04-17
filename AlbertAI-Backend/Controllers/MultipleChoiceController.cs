@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using albertai.models;
 using AlbertAI.Data;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AlbertAI.Controllers
 {
@@ -16,13 +18,11 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
-
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MultipleChoice>>> GetAllQuestions()
         {
             return await _context.MultipleChoices.ToListAsync();
         }
-
 
         [HttpGet("class/{classCodeId}")]
         public async Task<ActionResult<IEnumerable<MultipleChoice>>> GetQuestionsByClass(int classCodeId)
@@ -64,7 +64,6 @@ namespace AlbertAI.Controllers
             return Ok(questions);
         }
 
-
         [HttpPost]
         public async Task<ActionResult<MultipleChoice>> CreateQuestion([FromBody] MultipleChoice question)
         {
@@ -77,6 +76,23 @@ namespace AlbertAI.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetAllQuestions), new { id = question.Id }, question);
+        }
+
+        [HttpGet("exam/{examId}")]
+        public async Task<ActionResult<IEnumerable<MultipleChoice>>> GetByExamId(int examId)
+        {
+            var examExists = await _context.Exams.AnyAsync(e => e.Id == examId);
+            if (!examExists)
+            {
+                return NotFound($"Exam with ID {examId} not found.");
+            }
+
+            var questions = await _context.MultipleChoices
+                .Where(q => q.ExamId == examId)
+                .Include(q => q.Class)
+                .ToListAsync();
+
+            return Ok(questions);
         }
     }
 }
