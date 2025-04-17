@@ -151,6 +151,39 @@ namespace AlbertAI.Controllers
                     Console.WriteLine($"Error saving flashcards to database: {ex.Message}");
                 }
 
+                // Save TrueFalse questions to the database
+                try 
+                {
+                    var trueFalseJson = JsonDocument.Parse(trueFalseQuestions).RootElement;
+                    
+                    // Iterate through questions and save to database
+                    for (int i = 0; i < trueFalseJson.GetArrayLength(); i++)
+                    {
+                        var questionJson = trueFalseJson[i];
+                        
+                        // Create new TrueFalse object
+                        var tfQuestion = new TrueFalse
+                        {
+                            Question = questionJson.GetProperty("statement").GetString(),
+                            IsTrue = questionJson.GetProperty("answer").GetBoolean(),
+                            TimesReviewed = 0, // Default 0 for TimesReviewed
+                            SuccessRate = 0, // Default 0 for SuccessRate
+                            ClassCodeId = classCodeId
+                        };
+                        
+                        // Add to database
+                        _context.TrueFalses.Add(tfQuestion);
+                    }
+                    
+                    // Save changes to database
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail the request
+                    Console.WriteLine($"Error saving true/false questions to database: {ex.Message}");
+                }
+
                 // Create combined result
                 var result = new
                 {
