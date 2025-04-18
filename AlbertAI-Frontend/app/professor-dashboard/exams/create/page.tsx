@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Upload, Calendar as CalendarIcon, X } from "lucide-react";
@@ -28,6 +28,50 @@ export default function CreateExam() {
     date?: string;
     files?: string;
   }>({});
+  const [classes, setClasses] = useState<
+    Array<{ id: number; code: string; className: string }>
+  >([]);
+  const [professorId, setProfessorId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch the current professor's ID
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+      }/api/professor/me`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setProfessorId(data.id);
+        // After getting the professor ID, fetch their classes
+        fetchProfessorClasses(data.id, token);
+      })
+      .catch((err) => console.error("Error fetching professor data:", err));
+  }, []);
+
+  const fetchProfessorClasses = (profId: number, token: string) => {
+    fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+      }/api/classes/professor/${profId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setClasses(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching professor classes:", err));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -78,11 +122,83 @@ export default function CreateExam() {
     setIsLoading(true);
     setLoadingPhase("preparing");
 
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setLoadingPhase("complete");
+    try {
+      // Get the auth token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push("/professor-dashboard/exams/1");
+      // First create the exam
+      const examResponse = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/exam`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            classId: parseInt(selectedClass),
+            title: examName,
+            date: date?.toISOString(),
+          }),
+        }
+      );
+
+      if (!examResponse.ok) {
+        throw new Error("Failed to create exam");
+      }
+
+      const examData = await examResponse.json();
+      const examId = examData.id;
+
+      // Upload files and generate AI questions
+      if (files.length > 0) {
+        // Create FormData to upload files
+        const formData = new FormData();
+
+        // Add each file to the formData
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+
+        // Add the classCodeId and examId
+        formData.append("classCodeId", selectedClass);
+        formData.append("examId", examId.toString());
+
+        // Call the GenerateAIQuestions API
+        const generateResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/GenerateAIQuestions/upload`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              // Don't set Content-Type header when using FormData - browser will set it with boundary
+            },
+            body: formData,
+          }
+        );
+
+        if (!generateResponse.ok) {
+          throw new Error("Failed to generate questions");
+        }
+      }
+
+      setLoadingPhase("complete");
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Navigate to the newly created exam
+      router.push(`/professor-dashboard/exams/${examId}`);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      setIsLoading(false);
+      alert("Failed to create exam. Please try again.");
+    }
   };
 
   if (isLoading) {
@@ -219,9 +335,11 @@ export default function CreateExam() {
                   }`}
                 >
                   <option value="">Select a class</option>
-                  <option value="biology101">Biology 101</option>
-                  <option value="chemistry101">Chemistry 101</option>
-                  <option value="physics101">Physics 101</option>
+                  {classes.map((classItem) => (
+                    <option key={classItem.id} value={classItem.id.toString()}>
+                      {classItem.className} ({classItem.code})
+                    </option>
+                  ))}
                 </select>
                 {errors.selectedClass && (
                   <p className="mt-1 text-sm text-red-500">

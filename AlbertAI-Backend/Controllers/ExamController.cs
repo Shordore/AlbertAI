@@ -92,5 +92,117 @@ namespace AlbertAI.Controllers
 
             return Ok(exams);
         }
+
+        // GET: api/Exam/byprofessor/{professorId}
+        [HttpGet("byprofessor/{professorId}")]
+        public async Task<IActionResult> GetExamsByProfessor(int professorId)
+        {
+            // Check if professor exists
+            bool professorExists = await _context.Professors.AnyAsync(p => p.Id == professorId);
+            if (!professorExists)
+            {
+                return NotFound($"Professor with ID {professorId} not found.");
+            }
+
+            // Get all classes taught by this professor
+            var professorClasses = await _context.ClassCodes
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (!professorClasses.Any())
+            {
+                return NotFound($"No classes found for professor with ID {professorId}");
+            }
+
+            // Get all exams for these classes
+            var exams = await _context.Exams
+                .Where(e => professorClasses.Contains(e.ClassId))
+                .Include(e => e.Class)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Title,
+                    e.Date,
+                    ClassName = e.Class.ClassName,
+                    ClassCode = e.Class.Code
+                })
+                .ToListAsync();
+
+            if (!exams.Any())
+            {
+                return NotFound($"No exams found for professor with ID {professorId}");
+            }
+
+            return Ok(exams);
+        }
+
+        // DELETE: api/Exam/{id}
+        [HttpDelete("{id}")]
+        [AllowAnonymous] // Remove this and use proper authorization in production
+        public async Task<IActionResult> DeleteExam(int id)
+        {
+            var exam = await _context.Exams.FindAsync(id);
+            
+            if (exam == null)
+            {
+                return NotFound($"Exam with ID {id} not found.");
+            }
+
+            try
+            {
+                // Delete all question types associated with this exam
+                int deletedQuestionCount = 0;
+                
+                // Delete multiple choice questions
+                var multipleChoiceQuestions = await _context.MultipleChoices
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (multipleChoiceQuestions.Any())
+                {
+                    _context.MultipleChoices.RemoveRange(multipleChoiceQuestions);
+                    deletedQuestionCount += multipleChoiceQuestions.Count;
+                }
+                
+                // Delete true/false questions
+                var trueFalseQuestions = await _context.TrueFalses
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (trueFalseQuestions.Any())
+                {
+                    _context.TrueFalses.RemoveRange(trueFalseQuestions);
+                    deletedQuestionCount += trueFalseQuestions.Count;
+                }
+                
+                // Delete flashcard questions
+                var flashcardQuestions = await _context.Flashcards
+                    .Where(q => q.ExamId == id)
+                    .ToListAsync();
+                
+                if (flashcardQuestions.Any())
+                {
+                    _context.Flashcards.RemoveRange(flashcardQuestions);
+                    deletedQuestionCount += flashcardQuestions.Count;
+                }
+                
+                // Apply changes to delete questions
+                await _context.SaveChangesAsync();
+                
+                // Then delete the exam
+                _context.Exams.Remove(exam);
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { 
+                    message = $"Exam with ID {id} deleted successfully.",
+                    deletedQuestionsCount = deletedQuestionCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Failed to delete exam: {ex.Message}" });
+            }
+        }
     }
 } 

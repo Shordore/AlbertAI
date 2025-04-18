@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { StaticSparkles } from "@/components/static-sparkles";
@@ -13,16 +13,105 @@ import Link from "next/link";
 export default function ClassSetup() {
   const [isLoading, setIsLoading] = useState(false);
   const [className, setClassName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [professorId, setProfessorId] = useState<number | null>(null);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if professor ID is in session storage from registration
+    const storedProfessorId = sessionStorage.getItem("professorId");
+
+    if (storedProfessorId) {
+      setProfessorId(parseInt(storedProfessorId, 10));
+      return;
+    }
+
+    // If not in session storage, try to get from token
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchProfessorData(token);
+    }
+    // No redirect - continue with the flow even if we don't have ID yet
+  }, []);
+
+  const fetchProfessorData = async (token: string) => {
+    try {
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/professor/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfessorId(data.id);
+        // Store for future use in the onboarding flow
+        sessionStorage.setItem("professorId", data.id.toString());
+      }
+    } catch (error) {
+      console.error("Error fetching professor data:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Add class creation logic
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      // If we don't have a professor ID yet, try to get one from the backend
+      // This handles the case where the professor is already registered
+      // but we couldn't fetch the ID in the useEffect
+      if (!professorId) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          await fetchProfessorData(token);
+        }
+      }
+
+      // Get the professor ID from state or use a temporary ID for onboarding
+      const idToUse = professorId || -1; // Use -1 as a temporary ID if needed
+
+      // Get the token to use for authentication
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+        }/api/classes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            code: courseCode,
+            className: className,
+            professorId: idToUse,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create class");
+      }
+
+      const data = await response.json();
+      // Store the class ID if needed
+      if (data.id) {
+        sessionStorage.setItem("classId", data.id.toString());
+      }
+
       router.push("/professor-onboarding/class-code");
-    }, 2000);
+    } catch (error) {
+      console.error("Error creating class:", error);
+      // TODO: Show error message to user
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,7 +162,7 @@ export default function ClassSetup() {
               Let's get your first class set up
             </h2>
             <p className="mt-2 text-lg text-gray-400">
-              Enter the name of your class to get started
+              Enter your class details to get started
             </p>
           </div>
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
@@ -92,6 +181,24 @@ export default function ClassSetup() {
                   disabled={isLoading}
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="courseCode" className="text-white">
+                  Course Code
+                </Label>
+                <Input
+                  id="courseCode"
+                  placeholder="Enter course code (e.g. CS101)"
+                  type="text"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  value={courseCode}
+                  onChange={(e) => setCourseCode(e.target.value)}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   required
                 />

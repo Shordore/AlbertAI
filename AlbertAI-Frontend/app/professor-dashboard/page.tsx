@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import { CustomCalendar } from "@/components/ui/custom-calendar";
@@ -160,107 +160,284 @@ const exams = [
   },
 ];
 
-// Update the filter options near the top
-const filterOptions = [
-  { label: "Status", type: "header" },
-  { label: "Completed", value: "completed", type: "checkbox" },
-  { label: "Scheduled", value: "scheduled", type: "checkbox" },
-  { label: "Classes", type: "header" },
-  { label: "Biology 101", value: "bio101", type: "checkbox" },
-  { label: "Chemistry 201", value: "chem201", type: "checkbox" },
-  { label: "Physics 301", value: "phys301", type: "checkbox" },
-];
-
-const sortOptions = [
-  { label: "Exam Name (A-Z)", value: "name-asc" },
-  { label: "Exam Name (Z-A)", value: "name-desc" },
-  { label: "Class Name (A-Z)", value: "class-asc" },
-  { label: "Class Name (Z-A)", value: "class-desc" },
-  { label: "Date (Newest)", value: "date-desc" },
-  { label: "Date (Oldest)", value: "date-asc" },
-];
-
-// Add this near the top with other constants
-const rowsPerPageOptions = [
-  { label: "10 per page", value: 10 },
-  { label: "20 per page", value: 20 },
-  { label: "50 per page", value: 50 },
-  { label: "100 per page", value: 100 },
-];
-
-// Add this with other mock data at the top
-const notifications = [
-  {
-    id: "notif1",
-    title: "Midterm Exam Reminder",
-    class: "Biology 101",
-    sentDate: "Mar 10, 2025",
-    recipients: 32,
-    readRate: 94,
-    status: "Sent",
-  },
-  {
-    id: "notif2",
-    title: "Lab Practical Instructions",
-    class: "Physics 301",
-    sentDate: "Apr 2, 2025",
-    recipients: 24,
-    readRate: 87,
-    status: "Sent",
-  },
-  {
-    id: "notif3",
-    title: "Study Guide Available",
-    class: "Chemistry 201",
-    sentDate: "Mar 25, 2025",
-    recipients: 28,
-    readRate: 75,
-    status: "Sent",
-  },
-  {
-    id: "notif4",
-    title: "Final Exam Announcement",
-    class: "Biology 101",
-    sentDate: "Apr 15, 2025",
-    recipients: 32,
-    readRate: null,
-    status: "Scheduled",
-  },
-];
-
-// Update the notification filter options to use full class names
-const notificationFilterOptions = [
-  { label: "Classes", type: "header" },
-  { label: "Biology 101", value: "Biology 101", type: "checkbox" },
-  { label: "Chemistry 201", value: "Chemistry 201", type: "checkbox" },
-  { label: "Physics 301", value: "Physics 301", type: "checkbox" },
-];
-
-const notificationSortOptions = [
-  { label: "Title (A-Z)", value: "title-asc" },
-  { label: "Title (Z-A)", value: "title-desc" },
-  { label: "Class Name (A-Z)", value: "class-asc" },
-  { label: "Class Name (Z-A)", value: "class-desc" },
-  { label: "Date (Newest)", value: "date-desc" },
-  { label: "Date (Oldest)", value: "date-asc" },
-  { label: "Read Rate (Highest)", value: "read-desc" },
-  { label: "Read Rate (Lowest)", value: "read-asc" },
-];
-
 export default function ProfessorDashboard() {
+  interface ExamData {
+    id?: string;
+    _id?: string;
+    examName?: string;
+    name?: string;
+    title?: string;
+    className?: string;
+    class?: string;
+    examDate?: string;
+    date?: string;
+    classPreparedness?: number;
+    averageScore?: number;
+    status?: string;
+  }
+
+  interface ProcessedExam {
+    id: string;
+    examName: string;
+    className: string;
+    examDate: string;
+    classPreparedness?: number;
+    status: string;
+  }
+
+  // Define type for filter options
+  interface FilterOption {
+    label: string;
+    value?: string;
+    type: string;
+    className?: string;
+  }
+
   const [selectedTimeframe, setSelectedTimeframe] = useState("1 Month");
-  const [currentUser, setCurrentUser] = useState<{ name: string } | null>(null);
-  
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    id?: string;
+    _id?: string;
+    professorId?: string;
+    [key: string]: any;
+  } | null>(null);
+  const [exams, setExams] = useState<ProcessedExam[]>([]);
+  const [isLoadingExams, setIsLoadingExams] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOption[]>([]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/professor/me`, {
-      headers: { "Authorization": `Bearer ${token}` },
+
+    const baseApiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+    const apiUrl = `${baseApiUrl}/professor/me`;
+
+    fetch(apiUrl, {
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
-      .then((data) => setCurrentUser(data))
-      .catch((err) => console.error(err));
+      .then((res) => {
+        return res.json();
+      })
+      .then((data) => {
+        // Check all possible ID field names
+        if (data && !data.id && !data._id && data.professorId) {
+          data.id = data.professorId;
+        } else if (data && !data.id && data._id) {
+          data.id = data._id;
+        }
+        setCurrentUser(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching professor data:", err);
+      });
   }, []);
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      const professorId =
+        currentUser?.id || currentUser?._id || currentUser?.professorId;
+
+      if (!professorId) {
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const baseApiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+      const apiUrl = `${baseApiUrl}/Exam/byprofessor/${professorId}`;
+
+      setIsLoadingExams(true);
+      try {
+        const response = await fetch(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch exams: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+
+        // Check if data is wrapped in a response object
+        const examsList: ExamData[] = Array.isArray(data)
+          ? data
+          : data.exams || data.data || [];
+
+        // Map the data to match our expected format
+        const processedExams: ProcessedExam[] = examsList.map((exam) => ({
+          id: exam.id || exam._id || "",
+          examName: exam.examName || exam.name || exam.title || "",
+          className: exam.className || exam.class || "",
+          examDate: exam.examDate || exam.date || "",
+          classPreparedness: exam.classPreparedness || exam.averageScore,
+          status:
+            exam.status ||
+            (new Date(exam.examDate || exam.date || "") > new Date()
+              ? "Scheduled"
+              : "Completed"),
+        }));
+
+        setExams(processedExams);
+      } catch (error) {
+        console.error("Error fetching exams:", error);
+        setExams([]);
+      } finally {
+        setIsLoadingExams(false);
+      }
+    };
+
+    fetchExams();
+  }, [currentUser]);
+
+  // Generate filter options when exams change
+  useEffect(() => {
+    // Get unique class names from exams with type safety
+    const classNames: string[] = [];
+    exams.forEach((exam) => {
+      // Use the normalized className from our processed exams
+      if (exam.className && !classNames.includes(exam.className)) {
+        classNames.push(exam.className);
+      }
+    });
+
+    // Create filter options with status and dynamically added classes
+    const options: FilterOption[] = [
+      { label: "Status", type: "header" },
+      { label: "Completed", value: "completed", type: "checkbox" },
+      { label: "Scheduled", value: "scheduled", type: "checkbox" },
+      { label: "Classes", type: "header" },
+    ];
+
+    // Add each unique class
+    classNames.forEach((className) => {
+      // Create a value from className that's suitable for filtering
+      // Replace spaces with underscores and lowercase
+      const classValue = className.replace(/\s+/g, "_").toLowerCase();
+      options.push({
+        label: className,
+        value: classValue,
+        type: "checkbox",
+        className: className, // Store original class name for filtering
+      });
+    });
+
+    // If no classes were found, add some default placeholders
+    if (classNames.length === 0) {
+      options.push({
+        label: "Biology 101",
+        value: "biology_101",
+        type: "checkbox",
+        className: "Biology 101",
+      });
+      options.push({
+        label: "Chemistry 201",
+        value: "chemistry_201",
+        type: "checkbox",
+        className: "Chemistry 201",
+      });
+      options.push({
+        label: "Physics 301",
+        value: "physics_301",
+        type: "checkbox",
+        className: "Physics 301",
+      });
+    }
+
+    setFilterOptions(options);
+
+    // Initialize selectedFilters with all class values and status filters
+    const initialFilters = [
+      "completed",
+      "scheduled",
+      ...options
+        .filter((option) => option.type === "checkbox" && option.className)
+        .map((option) => option.value || ""),
+    ];
+
+    setSelectedFilters(initialFilters);
+  }, [exams]);
+
+  const sortOptions = [
+    { label: "Exam Name (A-Z)", value: "name-asc" },
+    { label: "Exam Name (Z-A)", value: "name-desc" },
+    { label: "Class Name (A-Z)", value: "class-asc" },
+    { label: "Class Name (Z-A)", value: "class-desc" },
+    { label: "Date (Newest)", value: "date-desc" },
+    { label: "Date (Oldest)", value: "date-asc" },
+  ];
+
+  // Add this near the top with other constants
+  const rowsPerPageOptions = [
+    { label: "10 per page", value: 10 },
+    { label: "20 per page", value: 20 },
+    { label: "50 per page", value: 50 },
+    { label: "100 per page", value: 100 },
+  ];
+
+  // Add this with other mock data at the top
+  const notifications = [
+    {
+      id: "notif1",
+      title: "Midterm Exam Reminder",
+      class: "Biology 101",
+      sentDate: "Mar 10, 2025",
+      recipients: 32,
+      readRate: 94,
+      status: "Sent",
+    },
+    {
+      id: "notif2",
+      title: "Lab Practical Instructions",
+      class: "Physics 301",
+      sentDate: "Apr 2, 2025",
+      recipients: 24,
+      readRate: 87,
+      status: "Sent",
+    },
+    {
+      id: "notif3",
+      title: "Study Guide Available",
+      class: "Chemistry 201",
+      sentDate: "Mar 25, 2025",
+      recipients: 28,
+      readRate: 75,
+      status: "Sent",
+    },
+    {
+      id: "notif4",
+      title: "Final Exam Announcement",
+      class: "Biology 101",
+      sentDate: "Apr 15, 2025",
+      recipients: 32,
+      readRate: null,
+      status: "Scheduled",
+    },
+  ];
+
+  // Update the notification filter options to use full class names
+  const notificationFilterOptions = [
+    { label: "Classes", type: "header" },
+    { label: "Biology 101", value: "Biology 101", type: "checkbox" },
+    { label: "Chemistry 201", value: "Chemistry 201", type: "checkbox" },
+    { label: "Physics 301", value: "Physics 301", type: "checkbox" },
+  ];
+
+  const notificationSortOptions = [
+    { label: "Title (A-Z)", value: "title-asc" },
+    { label: "Title (Z-A)", value: "title-desc" },
+    { label: "Class Name (A-Z)", value: "class-asc" },
+    { label: "Class Name (Z-A)", value: "class-desc" },
+    { label: "Date (Newest)", value: "date-desc" },
+    { label: "Date (Oldest)", value: "date-asc" },
+    { label: "Read Rate (Highest)", value: "read-desc" },
+    { label: "Read Rate (Lowest)", value: "read-asc" },
+  ];
+
   const [selectedFilters, setSelectedFilters] = useState<string[]>([
     "completed",
     "scheduled",
@@ -291,76 +468,131 @@ export default function ProfessorDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteExamId, setDeleteExamId] = useState<string | null>(null);
   const [isDeleteExamDialogOpen, setIsDeleteExamDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const notificationToDelete = notifications.find(
     (n) => n.id === deleteNotificationId
   );
   const examToDelete = exams.find((e) => e.id === deleteExamId);
   const router = useRouter();
-  
-  const initials = currentUser?.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase() || "";
 
-  // Filter and sort exams
+  // Function to delete an exam by ID
+  const deleteExam = async (examId: string) => {
+    if (!examId) return;
+
+    // Set loading state
+    setIsDeleting(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        setIsDeleting(false);
+        return;
+      }
+
+      const baseApiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+      const apiUrl = `${baseApiUrl}/Exam/${examId}`;
+
+      console.log(`Attempting to delete exam with ID: ${examId}`);
+      console.log(`Request URL: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(`Delete response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to delete exam: ${response.status} ${response.statusText}. Details: ${errorText}`
+        );
+      }
+
+      console.log(`Successfully deleted exam with ID: ${examId}`);
+
+      // Remove the deleted exam from the state
+      setExams((prevExams) => prevExams.filter((exam) => exam.id !== examId));
+
+      // Close the dialog and clear the deleteExamId
+      setIsDeleteExamDialogOpen(false);
+      setDeleteExamId(null);
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      alert(
+        `Failed to delete exam: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      // Always reset loading state
+      setIsDeleting(false);
+    }
+  };
+
+  const initials =
+    currentUser?.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() || "";
+
+  // Update filter logic to properly filter by class name
   const filteredExams = exams
-    .filter((exam) => {
+    .filter((exam: ProcessedExam) => {
       // Search filter
       if (searchQuery) {
-        return exam.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return exam.examName.toLowerCase().includes(searchQuery.toLowerCase());
       }
 
-      // If no filters selected, show all
-      if (selectedFilters.length === 0) {
-        return true;
-      }
+      // Status filters - only show exams whose status is in the selected filters
+      const statusFilter =
+        (exam.status === "Completed" &&
+          selectedFilters.includes("completed")) ||
+        (exam.status === "Scheduled" && selectedFilters.includes("scheduled"));
 
-      // Status filters
-      const statusMatch =
-        (selectedFilters.includes("completed") &&
-          exam.status === "Completed") ||
-        (selectedFilters.includes("scheduled") && exam.status === "Scheduled");
+      if (!statusFilter) return false;
 
-      // Class filters
-      const classMatch = selectedFilters.includes(exam.classId);
-
-      // If no status filters, only check class match
-      const hasStatusFilter =
-        selectedFilters.includes("completed") ||
-        selectedFilters.includes("scheduled");
-      if (!hasStatusFilter) return classMatch;
-
-      // If no class filters, only check status match
-      const hasClassFilter = selectedFilters.some((f) =>
-        ["bio101", "chem201", "phys301"].includes(f)
+      // Find the class filter value for this exam's class
+      const classFilterOption = filterOptions.find(
+        (option) =>
+          option.className === exam.className && option.type === "checkbox"
       );
-      if (!hasClassFilter) return statusMatch;
 
-      // If both types of filters are present, check both
-      return statusMatch && classMatch;
+      // Check if the class filter is selected
+      const classValue = classFilterOption?.value || "";
+      return selectedFilters.includes(classValue);
     })
-    .sort((a, b) => {
+    .sort((a: ProcessedExam, b: ProcessedExam) => {
       switch (selectedSort) {
         case "name-asc":
-          return a.name.localeCompare(b.name);
+          return a.examName.localeCompare(b.examName);
         case "name-desc":
-          return b.name.localeCompare(a.name);
+          return b.examName.localeCompare(a.examName);
         case "class-asc":
-          return a.class.localeCompare(b.class);
+          return a.className.localeCompare(b.className);
         case "class-desc":
-          return b.class.localeCompare(a.class);
+          return b.className.localeCompare(a.className);
         case "date-asc":
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
+          return (
+            new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
+          );
         case "date-desc":
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
+          return (
+            new Date(b.examDate).getTime() - new Date(a.examDate).getTime()
+          );
         default:
           return 0;
       }
     });
 
-  // Pagination
+  // Pagination based on filtered exams
   const totalPages = Math.ceil(filteredExams.length / rowsPerPage);
   const paginatedExams = filteredExams.slice(
     (currentPage - 1) * rowsPerPage,
@@ -493,9 +725,13 @@ export default function ProfessorDashboard() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                    <span className="text-black font-medium text-lg">{initials}</span>
+                    <span className="text-black font-medium text-lg">
+                      {initials}
+                    </span>
                   </div>
-                   <span className="text-white font-medium">{currentUser?.name || ""}</span>
+                  <span className="text-white font-medium">
+                    {currentUser?.name || ""}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -631,33 +867,50 @@ export default function ProfessorDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {filteredExams.map((exam) => (
-                      <Link
-                        key={exam.id}
-                        href={`/professor-dashboard/exams/${exam.id}`}
-                        className="flex items-center justify-between rounded-xl bg-white/10 p-3 transition-colors hover:bg-white/20"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-5 w-5" />
-                          <div>
-                            <div className="font-medium">{exam.name}</div>
-                            <div className="text-xs text-white/70">
-                              {exam.class}
+                  {isLoadingExams ? (
+                    <div className="flex justify-center py-8">
+                      <Icons.spinner className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : filteredExams && filteredExams.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredExams.slice(0, 3).map((exam: ProcessedExam) => (
+                        <Link
+                          key={exam.id}
+                          href={`/professor-dashboard/exams/${exam.id}`}
+                          className="flex items-center justify-between rounded-xl bg-white/10 p-3 transition-colors hover:bg-white/20"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Calendar className="h-5 w-5" />
+                            <div>
+                              <div className="font-medium">{exam.examName}</div>
+                              <div className="text-xs text-white/70">
+                                {exam.className}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{exam.date}</div>
-                          <div className="text-xs text-white/70">
-                            {exam.status === "Completed"
-                              ? `${exam.averageScore}% Avg.`
-                              : exam.status}
+                          <div className="text-right">
+                            <div className="font-medium">
+                              {new Date(exam.examDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </div>
+                            <div className="text-xs text-white/70">
+                              {exam.status}
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-white/70">
+                      No exams found
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -914,7 +1167,9 @@ export default function ProfessorDashboard() {
                                 strokeLinejoin="round"
                               />
                             </svg>
-                            Filter
+                            Filter{" "}
+                            {selectedFilters.length > 0 &&
+                              `(${selectedFilters.length})`}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[200px]">
@@ -1073,107 +1328,125 @@ export default function ProfessorDashboard() {
                     <div className="text-right">Actions</div>
                   </div>
 
-                  {paginatedExams.map((exam) => (
-                    <div
-                      key={exam.id}
-                      className="grid grid-cols-7 text-sm py-4 border-t border-[#1F1F1F] group"
-                    >
-                      <div className="col-span-2 text-white font-medium">
-                        {exam.name}
-                      </div>
-                      <div className="text-white">{exam.class}</div>
-                      <div className="text-white">{exam.date}</div>
-                      <div className="text-white">
-                        {exam.status === "Completed"
-                          ? `${exam.averageScore}%`
-                          : "—"}
-                      </div>
-                      <div>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            exam.status === "Completed"
-                              ? "bg-[#3B4CCA] text-white"
-                              : "bg-[#222222] text-white"
-                          }`}
-                        >
-                          {exam.status}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-gray-400"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
-                          >
-                            <DropdownMenuItem
-                              className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                              onClick={() =>
-                                router.push(
-                                  `/professor-dashboard/exams/${exam.id}`
-                                )
-                              }
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                              onClick={() => {
-                                setDeleteExamId(exam.id);
-                                setIsDeleteExamDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete Exam
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                  {isLoadingExams ? (
+                    <div className="py-20 flex justify-center">
+                      <Icons.spinner className="h-8 w-8 animate-spin text-white" />
                     </div>
-                  ))}
+                  ) : paginatedExams.length > 0 ? (
+                    paginatedExams.map((exam: ProcessedExam) => (
+                      <div
+                        key={exam.id}
+                        className="grid grid-cols-7 text-sm py-4 border-t border-[#1F1F1F] group"
+                      >
+                        <div className="col-span-2 text-white font-medium">
+                          {exam.examName}
+                        </div>
+                        <div className="text-white">{exam.className}</div>
+                        <div className="text-white">
+                          {new Date(exam.examDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </div>
+                        <div className="text-white">
+                          {exam.classPreparedness
+                            ? `${exam.classPreparedness}%`
+                            : "—"}
+                        </div>
+                        <div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              exam.status === "Completed"
+                                ? "bg-[#3B4CCA] text-white"
+                                : "bg-[#222222] text-white"
+                            }`}
+                          >
+                            {exam.status}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-gray-400"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
+                            >
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                                onClick={() =>
+                                  router.push(
+                                    `/professor-dashboard/exams/${exam.id}`
+                                  )
+                                }
+                              >
+                                <Eye className="h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                                onClick={() => {
+                                  setDeleteExamId(exam.id);
+                                  setIsDeleteExamDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete Exam
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-20 text-center text-gray-400">
+                      No exams found. Create a new exam to get started.
+                    </div>
+                  )}
 
                   {/* Pagination */}
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#1F1F1F]">
-                    <div className="text-sm text-gray-400">
-                      Showing{" "}
-                      {Math.min(
-                        (currentPage - 1) * rowsPerPage + 1,
-                        filteredExams.length
-                      )}{" "}
-                      to{" "}
-                      {Math.min(
-                        currentPage * rowsPerPage,
-                        filteredExams.length
-                      )}{" "}
-                      of {filteredExams.length} results
+                  {!isLoadingExams && filteredExams.length > 0 && (
+                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#1F1F1F]">
+                      <div className="text-sm text-gray-400">
+                        Showing{" "}
+                        {Math.min(
+                          (currentPage - 1) * rowsPerPage + 1,
+                          filteredExams.length
+                        )}{" "}
+                        to{" "}
+                        {Math.min(
+                          currentPage * rowsPerPage,
+                          filteredExams.length
+                        )}{" "}
+                        of {filteredExams.length} results
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="bg-[#222222] text-white border-zinc-800 hover:bg-[#2a2a2a] rounded-xl"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="bg-[#222222] text-white border-zinc-800 hover:bg-[#2a2a2a] rounded-xl"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="bg-[#222222] text-white border-zinc-800 hover:bg-[#2a2a2a] rounded-xl"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="bg-[#222222] text-white border-zinc-800 hover:bg-[#2a2a2a] rounded-xl"
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1673,10 +1946,11 @@ export default function ProfessorDashboard() {
             {examToDelete && (
               <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
                 <div className="font-medium text-white">
-                  {examToDelete.name}
+                  {examToDelete.examName}
                 </div>
                 <div className="text-sm text-gray-400 mt-1">
-                  {examToDelete.class} • {examToDelete.date}
+                  {examToDelete.className} •{" "}
+                  {new Date(examToDelete.examDate).toLocaleDateString()}
                 </div>
               </div>
             )}
@@ -1685,19 +1959,28 @@ export default function ProfessorDashboard() {
                 variant="outline"
                 onClick={() => setIsDeleteExamDialogOpen(false)}
                 className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
               <Button
                 onClick={() => {
-                  // Add delete logic here
-                  console.log("Deleting exam:", deleteExamId);
-                  setIsDeleteExamDialogOpen(false);
-                  setDeleteExamId(null);
+                  // Call the delete function with the exam ID
+                  if (deleteExamId) {
+                    deleteExam(deleteExamId);
+                  }
                 }}
                 className="bg-red-500 text-white hover:bg-red-600"
+                disabled={isDeleting}
               >
-                Delete Exam
+                {isDeleting ? (
+                  <div className="flex items-center">
+                    <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </div>
+                ) : (
+                  "Delete Exam"
+                )}
               </Button>
             </div>
           </div>

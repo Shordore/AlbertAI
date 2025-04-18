@@ -3,6 +3,7 @@ using AlbertAI.Data;              // For AppDbContext
 using AlbertAI.Models;            // For your ClassCode model
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using AlbertAI.Models.DTO;
 
 namespace AlbertAI.Controllers
 {
@@ -17,6 +18,44 @@ namespace AlbertAI.Controllers
             _context = context;
         }
 
+        // POST: api/classes
+        [HttpPost]
+        public async Task<IActionResult> CreateClass([FromBody] CreateClassRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.ClassName))
+            {
+                return BadRequest("Code and ClassName are required.");
+            }
+
+            // Check if professor exists
+            var professor = await _context.Professors.FindAsync(request.ProfessorId);
+            if (professor == null)
+            {
+                return BadRequest("Invalid ProfessorId. Professor not found.");
+            }
+
+            // Check if class code already exists
+            var existingClass = await _context.ClassCodes
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == request.Code.ToLower());
+            if (existingClass != null)
+            {
+                return BadRequest("A class with this code already exists.");
+            }
+
+            // Create new class
+            var newClass = new ClassCode
+            {
+                Code = request.Code,
+                ClassName = request.ClassName,
+                ProfessorId = request.ProfessorId
+            };
+
+            _context.ClassCodes.Add(newClass);
+            await _context.SaveChangesAsync();
+
+            // Return the ID of the newly created class
+            return Ok(new { id = newClass.Id });
+        }
 
         // GET: api/classes/name?classCode=ABC12345
         [HttpGet("name")]
@@ -38,7 +77,6 @@ namespace AlbertAI.Controllers
             return Ok(new { className = classEntity.ClassName });
         }
 
-
         // GET: api/classes/code?className=Computer%20Science%20101
         [HttpGet("code")]
         public async Task<IActionResult> GetClassCode([FromQuery] string className)
@@ -59,6 +97,29 @@ namespace AlbertAI.Controllers
 
             // Return the classCodeId in a JSON response.
             return Ok(new { classCodeId = classCodeEntity.Code });
+        }
+
+        // GET: api/classes/professor/{professorId}
+        [HttpGet("professor/{professorId}")]
+        public async Task<IActionResult> GetClassesByProfessorId(int professorId)
+        {
+            var classes = await _context.ClassCodes
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Code,
+                    c.ClassName,
+                    c.ProfessorId
+                })
+                .ToListAsync();
+
+            if (!classes.Any())
+            {
+                return NotFound($"No classes found for professor with ID: {professorId}");
+            }
+
+            return Ok(classes);
         }
     }
 }

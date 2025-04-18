@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Pencil, Trash2, Edit } from "lucide-react";
 import {
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 
 interface FlashcardQuestion {
   id: string;
@@ -41,127 +42,31 @@ interface MultipleChoiceQuestion {
 
 type Question = FlashcardQuestion | TrueFalseQuestion | MultipleChoiceQuestion;
 
-// Mock data for the exam
-const examData = {
-  id: "exam1",
-  name: "Final Exam",
-  class: "Biology 101",
-  status: "Scheduled",
-  date: "Apr 20, 2025",
-  time: "9:00 AM",
-  duration: "120 minutes",
-  totalQuestions: 60,
-  questions: {
-    flashcards: [
-      {
-        id: "fc1",
-        question: "What is photosynthesis?",
-        answer:
-          "The process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-      },
-      {
-        id: "fc2",
-        question: "Define cellular respiration.",
-        answer:
-          "The process by which cells break down glucose and other molecules to generate energy in the form of ATP.",
-      },
-      {
-        id: "fc3",
-        question: "What is DNA?",
-        answer:
-          "Deoxyribonucleic acid, a self-replicating material present in nearly all living organisms as the main constituent of chromosomes.",
-      },
-    ],
-    trueFalse: [
-      {
-        id: "tf1",
-        question: "Photosynthesis occurs in all living organisms.",
-        answer: false,
-      },
-      {
-        id: "tf2",
-        question: "DNA is a double-helix structure.",
-        answer: true,
-      },
-    ],
-    multipleChoice: [
-      {
-        id: "mc1",
-        question: "Which of the following is NOT a part of a cell?",
-        options: ["Nucleus", "Mitochondria", "Carburetor", "Golgi Body"],
-        answer: 2,
-      },
-      {
-        id: "mc2",
-        question: "What is the primary function of mitochondria?",
-        options: [
-          "Protein synthesis",
-          "Energy production",
-          "Cell division",
-          "Waste removal",
-        ],
-        answer: 1,
-      },
-    ],
-  },
-};
-
-const flashcards = [
-  {
-    id: "1",
-    type: "Flashcard" as const,
-    question: "What is photosynthesis?",
-    answer:
-      "The process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-  },
-  {
-    id: "2",
-    type: "Flashcard" as const,
-    question: "What is cellular respiration?",
-    answer:
-      "The metabolic process by which cells break down glucose to produce energy in the form of ATP.",
-  },
-];
-
-const trueFalseQuestions = [
-  {
-    id: "1",
-    type: "True/False" as const,
-    question: "Mitochondria is the powerhouse of the cell.",
-    answer: true,
-  },
-  {
-    id: "2",
-    type: "True/False" as const,
-    question: "DNA is a single-stranded molecule.",
-    answer: false,
-  },
-];
-
-const multipleChoiceQuestions = [
-  {
-    id: "1",
-    type: "Multiple Choice" as const,
-    question: "Which of the following is NOT a type of RNA?",
-    options: ["mRNA", "tRNA", "dRNA", "rRNA"],
-    answer: "dRNA",
-  },
-  {
-    id: "2",
-    type: "Multiple Choice" as const,
-    question: "What is the primary function of the nucleus?",
-    options: [
-      "Energy production",
-      "Protein synthesis",
-      "Storing genetic material",
-      "Waste removal",
-    ],
-    answer: "Storing genetic material",
-  },
-];
+// Remove the mock data and define state interfaces
+interface ExamData {
+  id: number;
+  title: string;
+  className: string;
+  classCode: string;
+  date: string;
+  totalQuestions: number;
+}
 
 export default function ExamDetails() {
   const router = useRouter();
+  const params = useParams();
+  const examId = params.id as string;
+
+  const [loading, setLoading] = useState(true);
+  const [exam, setExam] = useState<ExamData | null>(null);
+  const [flashcards, setFlashcards] = useState<FlashcardQuestion[]>([]);
+  const [trueFalseQuestions, setTrueFalseQuestions] = useState<
+    TrueFalseQuestion[]
+  >([]);
+  const [multipleChoiceQuestions, setMultipleChoiceQuestions] = useState<
+    MultipleChoiceQuestion[]
+  >([]);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeQuestionType, setActiveQuestionType] =
     useState<Question["type"]>("Flashcard");
@@ -171,9 +76,158 @@ export default function ExamDetails() {
     Question["type"] | null
   >(null);
 
+  // Fetch exam data when component mounts
+  useEffect(() => {
+    const fetchExamData = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Not authenticated");
+        }
+
+        // Fetch exam details
+        const examResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/exam/${examId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!examResponse.ok) {
+          throw new Error("Failed to fetch exam data");
+        }
+
+        const examData = await examResponse.json();
+
+        // Transform to our interface format
+        setExam({
+          id: examData.id,
+          title: examData.title,
+          className: examData.class?.className || "Unknown Class",
+          classCode: examData.class?.code || "",
+          date: examData.date,
+          totalQuestions: 0, // Will be updated after fetching questions
+        });
+
+        // Fetch flashcards
+        const flashcardsResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/flashcards/exam/${examId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        let flashcardsCount = 0;
+        if (flashcardsResponse.ok) {
+          const flashcardsData = await flashcardsResponse.json();
+          console.log("Flashcards API response:", flashcardsData);
+
+          // Transform to our interface format - handle different possible field names
+          const mappedFlashcards = flashcardsData.map((card: any) => ({
+            id: card.id.toString(),
+            type: "Flashcard" as const,
+            question: card.front || card.question || "",
+            answer: card.back || card.answer || "",
+          }));
+          console.log("Mapped flashcards:", mappedFlashcards);
+          setFlashcards(mappedFlashcards);
+          flashcardsCount = mappedFlashcards.length;
+        } else {
+          // Log error details
+          console.error("Failed to fetch flashcards:", {
+            status: flashcardsResponse.status,
+            statusText: flashcardsResponse.statusText,
+          });
+          try {
+            const errorText = await flashcardsResponse.text();
+            console.error("Error response:", errorText);
+          } catch (e) {
+            console.error("Could not parse error response");
+          }
+        }
+
+        // Fetch true/false questions
+        const trueFalseResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/truefalse/exam/${examId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        let trueFalseCount = 0;
+        if (trueFalseResponse.ok) {
+          const trueFalseData = await trueFalseResponse.json();
+          // Transform to our interface format
+          const mappedTrueFalse = trueFalseData.map((q: any) => ({
+            id: q.id.toString(),
+            type: "True/False" as const,
+            question: q.question || q.statement,
+            answer: q.isTrue || q.answer,
+          }));
+          setTrueFalseQuestions(mappedTrueFalse);
+          trueFalseCount = mappedTrueFalse.length;
+        }
+
+        // Fetch multiple choice questions
+        const mcResponse = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051"
+          }/api/multiplechoice/exam/${examId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        let mcCount = 0;
+        if (mcResponse.ok) {
+          const mcData = await mcResponse.json();
+          // Transform to our interface format
+          const mappedMC = mcData.map((q: any) => ({
+            id: q.id.toString(),
+            type: "Multiple Choice" as const,
+            question: q.question,
+            options: q.choices,
+            answer: q.answer,
+          }));
+          setMultipleChoiceQuestions(mappedMC);
+          mcCount = mappedMC.length;
+        }
+
+        // Update total questions count with the local count variables
+        const totalCount = flashcardsCount + trueFalseCount + mcCount;
+        setExam((prev) =>
+          prev ? { ...prev, totalQuestions: totalCount } : null
+        );
+      } catch (error) {
+        console.error("Error fetching exam data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (examId) {
+      fetchExamData();
+    }
+  }, [examId]);
+
   const handleDelete = () => {
     // Add delete logic here
-    console.log("Deleting exam:", examData.id);
+    console.log("Deleting exam:", exam?.id);
     setDeleteDialogOpen(false);
     router.push("/professor-dashboard");
   };
@@ -539,135 +593,153 @@ export default function ExamDetails() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              className="text-gray-400 hover:text-white"
-              onClick={() => router.push("/professor-dashboard")}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-white">{examData.name}</h1>
-              <p className="text-gray-400">{examData.class}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="bg-[#1F1F1F] text-red-500 border-0 hover:bg-[#2a2a2a] hover:text-red-400 rounded-xl"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Exam
-            </Button>
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3B4CCA]"></div>
         </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#CD7F32] rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-2 text-white/80">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="opacity-80"
+      ) : exam ? (
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                className="text-gray-400 hover:text-white"
+                onClick={() => router.push("/professor-dashboard")}
               >
-                <path
-                  d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Date & Time
-            </div>
-            <div className="text-4xl font-bold text-white">{examData.date}</div>
-            <div className="text-sm text-white/80">{examData.time}</div>
-          </div>
-
-          <div className="bg-[#3B4CCA] rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-2 text-white/80">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="opacity-80"
-              >
-                <path
-                  d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Questions
-            </div>
-            <div className="text-4xl font-bold text-white">
-              {examData.totalQuestions}
-            </div>
-            <div className="text-sm text-white/80">
-              Flashcards: {examData.questions.flashcards.length}
-              <br />
-              True/False: {examData.questions.trueFalse.length}
-              <br />
-              Multiple Choice: {examData.questions.multipleChoice.length}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#0A0A0A] rounded-xl border border-[#1F1F1F]">
-          <div className="p-6">
-            <div className="space-y-8">
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <button
-                    onClick={() => handleQuestionTypeChange("Flashcard")}
-                    className={`rounded-lg px-3 py-1 text-sm ${
-                      activeQuestionType === "Flashcard"
-                        ? "bg-[#3B4CCA] text-white"
-                        : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
-                    }`}
-                  >
-                    Flashcards {examData.questions.flashcards.length}
-                  </button>
-                  <button
-                    onClick={() => handleQuestionTypeChange("True/False")}
-                    className={`rounded-lg px-3 py-1 text-sm ${
-                      activeQuestionType === "True/False"
-                        ? "bg-[#3B4CCA] text-white"
-                        : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
-                    }`}
-                  >
-                    True/False {examData.questions.trueFalse.length}
-                  </button>
-                  <button
-                    onClick={() => handleQuestionTypeChange("Multiple Choice")}
-                    className={`rounded-lg px-3 py-1 text-sm ${
-                      activeQuestionType === "Multiple Choice"
-                        ? "bg-[#3B4CCA] text-white"
-                        : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
-                    }`}
-                  >
-                    Multiple Choice {examData.questions.multipleChoice.length}
-                  </button>
-                </div>
+                <h1 className="text-3xl font-bold text-white">{exam.title}</h1>
+                <p className="text-gray-400">{exam.className}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="bg-[#1F1F1F] text-red-500 border-0 hover:bg-[#2a2a2a] hover:text-red-400 rounded-xl"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Exam
+              </Button>
+            </div>
+          </div>
 
-                <div className="space-y-4">{renderQuestions()}</div>
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-[#CD7F32] rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-2 text-white/80">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="opacity-80"
+                >
+                  <path
+                    d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Date & Time
+              </div>
+              <div className="text-4xl font-bold text-white">
+                {exam.date
+                  ? format(new Date(exam.date), "MMM d, yyyy")
+                  : "No date set"}
+              </div>
+              <div className="text-sm text-white/80">
+                {exam.date ? format(new Date(exam.date), "h:mm a") : ""}
+              </div>
+            </div>
+
+            <div className="bg-[#3B4CCA] rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-2 text-white/80">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="opacity-80"
+                >
+                  <path
+                    d="M8.5 6H15.5M8.5 9H15.5M8.5 12H11.5M4 4V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V4C20 3.44772 19.5523 3 19 3H5C4.44772 3 4 3.44772 4 4Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Questions
+              </div>
+              <div className="text-4xl font-bold text-white">
+                {flashcards.length +
+                  trueFalseQuestions.length +
+                  multipleChoiceQuestions.length}
+              </div>
+              <div className="text-sm text-white/80">
+                Flashcards: {flashcards.length} <br />
+                True/False: {trueFalseQuestions.length} <br />
+                Multiple Choice: {multipleChoiceQuestions.length}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0A0A0A] rounded-xl border border-[#1F1F1F]">
+            <div className="p-6">
+              <div className="space-y-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <button
+                      onClick={() => handleQuestionTypeChange("Flashcard")}
+                      className={`rounded-lg px-3 py-1 text-sm ${
+                        activeQuestionType === "Flashcard"
+                          ? "bg-[#3B4CCA] text-white"
+                          : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
+                      }`}
+                    >
+                      Flashcards {flashcards.length}
+                    </button>
+                    <button
+                      onClick={() => handleQuestionTypeChange("True/False")}
+                      className={`rounded-lg px-3 py-1 text-sm ${
+                        activeQuestionType === "True/False"
+                          ? "bg-[#3B4CCA] text-white"
+                          : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
+                      }`}
+                    >
+                      True/False {trueFalseQuestions.length}
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleQuestionTypeChange("Multiple Choice")
+                      }
+                      className={`rounded-lg px-3 py-1 text-sm ${
+                        activeQuestionType === "Multiple Choice"
+                          ? "bg-[#3B4CCA] text-white"
+                          : "bg-[#1F1F1F] text-white hover:bg-[#2a2a2a]"
+                      }`}
+                    >
+                      Multiple Choice {multipleChoiceQuestions.length}
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">{renderQuestions()}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-center h-screen">
+          <p className="text-gray-400">No exam data found.</p>
+        </div>
+      )}
 
       {renderEditDialog()}
 
