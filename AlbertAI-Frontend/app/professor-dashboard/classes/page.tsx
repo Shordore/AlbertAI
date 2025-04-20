@@ -54,6 +54,7 @@ export default function Classes() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAddingClass, setIsAddingClass] = useState(false);
   const [currentUser, setCurrentUser] = useState<{
     name: string;
     id?: string;
@@ -145,18 +146,19 @@ export default function Classes() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        let examsData = [];
+        let examsData: any[] = [];
         if (examsResponse.ok) {
           examsData = await examsResponse.json();
         }
 
         // Process the data to match our UI needs
-        const processedClasses = classesData.map((cls) => {
+        const processedClasses = classesData.map((cls: any) => {
           // Find the latest exam for this class
           const classExams = examsData
-            .filter((exam) => exam.className === cls.className)
+            .filter((exam: any) => exam.className === cls.className)
             .sort(
-              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              (a: any, b: any) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime()
             );
 
           const lastExam =
@@ -175,8 +177,6 @@ export default function Classes() {
               : undefined;
 
           // Calculate average score - this is a placeholder since we don't have this data
-          // In real app, you would fetch this from a scores endpoint
-          // For now, just assign a random score between 65-95
           const averageScore = Math.floor(Math.random() * 30) + 65;
 
           return {
@@ -203,26 +203,27 @@ export default function Classes() {
     }
   }, [currentUser]);
 
-  const generateCourseCode = () => {
-    // Generate a random course code
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  };
-
   const handleAddClass = async () => {
-    // Generate course code
-    const newCourseCode = generateCourseCode();
-    setCourseCode(newCourseCode);
+    if (!className || !courseCode) {
+      return;
+    }
+
+    setIsAddingClass(true);
 
     // Create the class in the database
     const professorId =
       currentUser?.id || currentUser?._id || currentUser?.professorId;
     if (!professorId) {
       console.error("No professor ID found");
+      setIsAddingClass(false);
       return;
     }
 
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setIsAddingClass(false);
+      return;
+    }
 
     const baseApiUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
@@ -236,7 +237,7 @@ export default function Classes() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          code: newCourseCode,
+          code: courseCode,
           className: className,
           professorId: professorId,
         }),
@@ -246,14 +247,21 @@ export default function Classes() {
         throw new Error("Failed to create class");
       }
 
-      // Show the course code to the user
-      setShowCourseCode(true);
+      // Close the dialog and reset form
+      setIsAddClassOpen(false);
+      setClassName("");
+      setCourseCode("");
 
-      // Refresh classes after adding a new one
-      // This would happen on the next render due to the useEffect dependency
+      // Refresh the class list
+      if (currentUser) {
+        // This will trigger a re-fetch in the useEffect
+        setCurrentUser({ ...currentUser });
+      }
     } catch (error) {
       console.error("Error creating class:", error);
       alert("Failed to create class. Please try again.");
+    } finally {
+      setIsAddingClass(false);
     }
   };
 
@@ -372,80 +380,64 @@ export default function Classes() {
                   Add New Class
                 </DialogTitle>
                 <DialogDescription className="text-gray-400">
-                  {!showCourseCode
-                    ? "Enter your class name to create a new class"
-                    : "Your class has been created! Here's your course code:"}
+                  Enter your class name to create a new class
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                {!showCourseCode ? (
-                  <>
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="className"
-                        className="text-sm font-medium text-white"
-                      >
-                        Class Name
-                      </label>
-                      <Input
-                        id="className"
-                        placeholder="Enter class name..."
-                        value={className}
-                        onChange={(e) => setClassName(e.target.value)}
-                        className="bg-[#111111] border-[#222222] text-white placeholder-gray-500 focus:border-[#3B4CCA]"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsAddClassOpen(false)}
-                        className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleAddClass}
-                        disabled={!className}
-                        className="bg-[#3B4CCA] text-white hover:bg-[#3343b3]"
-                      >
-                        Add Class
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="p-6 rounded-xl bg-[#111111] border border-[#222222] flex flex-col items-center">
-                      <p className="text-3xl font-mono font-bold text-white mb-4">
-                        {courseCode}
-                      </p>
-                      <Button
-                        onClick={handleCopyCode}
-                        variant="outline"
-                        className="flex items-center gap-2 bg-transparent border-[#222222] text-white hover:bg-[#222222]"
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="h-4 w-4" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" />
-                            Copy Code
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={handleDone}
-                        className="bg-[#3B4CCA] text-white hover:bg-[#3343b3]"
-                      >
-                        Done
-                      </Button>
-                    </div>
-                  </>
-                )}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="className"
+                    className="text-sm font-medium text-white"
+                  >
+                    Class Name
+                  </label>
+                  <Input
+                    id="className"
+                    placeholder="Enter class name..."
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    className="bg-[#111111] border-[#222222] text-white placeholder-gray-500 focus:border-[#3B4CCA]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="courseCode"
+                    className="text-sm font-medium text-white"
+                  >
+                    Course Code
+                  </label>
+                  <Input
+                    id="courseCode"
+                    placeholder="Enter course code..."
+                    value={courseCode}
+                    onChange={(e) => setCourseCode(e.target.value)}
+                    className="bg-[#111111] border-[#222222] text-white placeholder-gray-500 focus:border-[#3B4CCA]"
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddClassOpen(false)}
+                    className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+                    disabled={isAddingClass}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddClass}
+                    disabled={!className || !courseCode || isAddingClass}
+                    className="bg-[#3B4CCA] text-white hover:bg-[#3343b3]"
+                  >
+                    {isAddingClass ? (
+                      <div className="flex items-center">
+                        <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </div>
+                    ) : (
+                      "Add Class"
+                    )}
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
