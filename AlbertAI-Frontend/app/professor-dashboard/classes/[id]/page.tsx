@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -11,7 +11,7 @@ import {
   Eye,
   Edit,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -36,15 +36,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { NotificationDialog } from "@/components/notifications/notification-dialog";
+import { Icons } from "@/components/icons";
 
 interface Student {
-  initials: string;
-  name: string;
-  email: string;
-  averageScore: string;
-  lastActive: string;
+  id?: number;
+  initials?: string;
+  name?: string;
+  email?: string;
+  averageScore?: string;
+  lastActive?: string;
 }
 
+// Keep mock performance data for now, as there's no API for this
 const performanceData = [
   { date: "Jan 1", score: 82 },
   { date: "Jan 10", score: 83 },
@@ -59,74 +62,21 @@ const performanceData = [
   { date: "Apr 7", score: 96 },
 ];
 
-const students = [
-  {
-    initials: "AJ",
-    name: "Alex Johnson",
-    email: "alex.johnson@university.edu",
-    averageScore: "82%",
-    lastActive: "Apr 12, 2025",
-  },
-  {
-    initials: "JS",
-    name: "Jamie Smith",
-    email: "jamie.smith@university.edu",
-    averageScore: "78%",
-    lastActive: "Apr 11, 2025",
-  },
-  {
-    initials: "TW",
-    name: "Taylor Wilson",
-    email: "taylor.wilson@university.edu",
-    averageScore: "91%",
-    lastActive: "Apr 13, 2025",
-  },
-  {
-    initials: "ML",
-    name: "Morgan Lee",
-    email: "morgan.lee@university.edu",
-    averageScore: "65%",
-    lastActive: "Apr 10, 2025",
-  },
-];
-
-const exams = [
-  {
-    id: "final-2025",
-    name: "Final Exam",
-    date: "Apr 20, 2025",
-    questions: 50,
-    averageScore: "-",
-    status: "Scheduled",
-  },
-  {
-    id: "midterm-2025",
-    name: "Midterm Exam",
-    date: "Mar 15, 2025",
-    questions: 30,
-    averageScore: "78%",
-    status: "Completed",
-  },
-];
-
-const sortOptions = [
-  { label: "Exam Name (A-Z)", value: "name-asc" },
-  { label: "Exam Name (Z-A)", value: "name-desc" },
-  { label: "Date (Newest)", value: "date-desc" },
-  { label: "Date (Oldest)", value: "date-asc" },
-];
-
 interface Exam {
-  id: string;
-  name: string;
-  date: string;
-  questions: number;
-  averageScore: string;
-  status: string;
+  id?: string;
+  name?: string;
+  title?: string;
+  date?: string;
+  questions?: number;
+  averageScore?: string;
+  status?: string;
 }
 
 export default function ClassDetails() {
   const router = useRouter();
+  const params = useParams();
+  const classId = params.id;
+
   const [activeTab, setActiveTab] = useState("Performance");
   const [selectedTimeframe, setSelectedTimeframe] = useState("1 Month");
   const [selectedClass, setSelectedClass] = useState("All Classes");
@@ -140,6 +90,146 @@ export default function ClassDetails() {
     useState(false);
   const [deleteExamId, setDeleteExamId] = useState<string | null>(null);
   const [isDeleteExamDialogOpen, setIsDeleteExamDialogOpen] = useState(false);
+
+  // New state for real data
+  const [isLoading, setIsLoading] = useState(true);
+  const [classData, setClassData] = useState<{
+    id: number;
+    code: string;
+    className: string;
+    students: Student[];
+    averageScore?: number;
+  } | null>(null);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [nextExam, setNextExam] = useState<Exam | null>(null);
+
+  // Fetch class and related data
+  useEffect(() => {
+    if (!classId) return;
+
+    const fetchClassData = async () => {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const baseApiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+
+        // We need to fetch:
+        // 1. Class data with students - api/classes/professor/{professorId}/with-students
+        // 2. Exams for this class - api/Exam/byprofessor/{professorId}
+
+        // First, get professor data
+        const professorResponse = await fetch(`${baseApiUrl}/professor/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!professorResponse.ok)
+          throw new Error("Failed to fetch professor data");
+        const professorData = await professorResponse.json();
+        const professorId =
+          professorData.id || professorData._id || professorData.professorId;
+
+        // Then get the classes with students
+        const classesResponse = await fetch(
+          `${baseApiUrl}/classes/professor/${professorId}/with-students`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!classesResponse.ok) throw new Error("Failed to fetch classes");
+        const classesData = await classesResponse.json();
+
+        // Find our specific class
+        const currentClass = classesData.find(
+          (c: any) => c.id.toString() === classId.toString()
+        );
+        if (!currentClass) throw new Error("Class not found");
+
+        // Get the class's exams
+        const examsResponse = await fetch(
+          `${baseApiUrl}/Exam/byprofessor/${professorId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        let examsData: Exam[] = [];
+        if (examsResponse.ok) {
+          const allExams = await examsResponse.json();
+          // Filter for exams belonging to this class
+          examsData = allExams
+            .filter((exam: any) => exam.className === currentClass.className)
+            .map((exam: any) => ({
+              id: exam.id,
+              name: exam.title,
+              title: exam.title,
+              date: new Date(exam.date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+              status:
+                new Date(exam.date) > new Date() ? "Scheduled" : "Completed",
+              // Missing questions count, would need a different API
+              questions: 30, // Placeholder
+              averageScore: new Date(exam.date) > new Date() ? "-" : "78%", // Placeholder
+            }));
+
+          // Sort exams by date
+          examsData.sort((a, b) => {
+            if (!a.date || !b.date) return 0;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          });
+
+          // Find the next upcoming exam
+          const upcomingExams = examsData.filter(
+            (e) => e.status === "Scheduled"
+          );
+          if (upcomingExams.length > 0) {
+            setNextExam(upcomingExams[0]);
+          }
+        }
+
+        // Process students to include initials
+        const processedStudents = currentClass.students.map((student: any) => {
+          const nameParts = student.name ? student.name.split(" ") : ["?", "?"];
+          const initials = `${nameParts[0][0]}${
+            nameParts[1]?.[0] || ""
+          }`.toUpperCase();
+
+          return {
+            id: student.id,
+            name: student.name,
+            email: student.email,
+            initials,
+            averageScore: `${Math.floor(Math.random() * 30) + 65}%`, // Placeholder
+            lastActive: "Apr 12, 2025", // Placeholder
+          };
+        });
+
+        // Set the class data with students
+        setClassData({
+          id: currentClass.id,
+          code: currentClass.code,
+          className: currentClass.className,
+          students: processedStudents,
+          averageScore: Math.floor(Math.random() * 30) + 65, // Placeholder
+        });
+
+        setExams(examsData);
+      } catch (error) {
+        console.error("Error fetching class data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClassData();
+  }, [classId]);
+
   const examToDelete = exams.find((e) => e.id === deleteExamId);
 
   const handleDeleteStudent = (student: Student) => {
@@ -157,20 +247,24 @@ export default function ClassDetails() {
   const sortedExams = [...exams].sort((a, b) => {
     switch (selectedSort) {
       case "name-asc":
-        return a.name.localeCompare(b.name);
+        return (a.name || "").localeCompare(b.name || "");
       case "name-desc":
-        return b.name.localeCompare(a.name);
+        return (b.name || "").localeCompare(a.name || "");
       case "date-asc":
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return (
+          new Date(a.date || "").getTime() - new Date(b.date || "").getTime()
+        );
       case "date-desc":
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return (
+          new Date(b.date || "").getTime() - new Date(a.date || "").getTime()
+        );
       default:
         return 0;
     }
   });
 
   const filteredExams = sortedExams.filter((exam) =>
-    exam.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (exam.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getFilteredPerformanceData = () => {
@@ -204,19 +298,47 @@ export default function ClassDetails() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Icons.spinner className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <div className="min-h-screen bg-black p-6">
+        <Button
+          variant="ghost"
+          className="mb-6 text-gray-400 hover:text-white"
+          onClick={() => router.push("/professor-dashboard/classes")}
+        >
+          <ChevronLeft className="h-4 w-4 mr-2" />
+          Back to Classes
+        </Button>
+        <div className="text-white text-center py-20">
+          Class not found. Please return to the classes list.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <div className="p-6">
         <Button
           variant="ghost"
           className="mb-6 text-gray-400 hover:text-white"
-          onClick={() => router.push("/professor-dashboard")}
+          onClick={() => router.push("/professor-dashboard/classes")}
         >
           <ChevronLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          Back to Classes
         </Button>
 
-        <h1 className="text-3xl font-bold text-white mb-6">Biology 101</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">
+          {classData.className}
+        </h1>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-[#3B4CCA] rounded-xl p-6 text-white">
@@ -239,7 +361,9 @@ export default function ClassDetails() {
               </svg>
               Students
             </div>
-            <div className="text-4xl font-bold">32</div>
+            <div className="text-4xl font-bold">
+              {classData.students.length}
+            </div>
             <div className="text-sm text-white/80">Enrolled students</div>
           </div>
 
@@ -263,7 +387,7 @@ export default function ClassDetails() {
               </svg>
               Class Preparedness
             </div>
-            <div className="text-4xl font-bold">78%</div>
+            <div className="text-4xl font-bold">{classData.averageScore}%</div>
             <div className="text-sm text-white/80">For upcoming exam</div>
           </div>
 
@@ -287,8 +411,10 @@ export default function ClassDetails() {
               </svg>
               Next Exam
             </div>
-            <div className="text-4xl font-bold">Apr 20, 2025</div>
-            <div className="text-sm text-white/80">Final Exam</div>
+            <div className="text-4xl font-bold">
+              {nextExam?.date || "No exam scheduled"}
+            </div>
+            <div className="text-sm text-white/80">{nextExam?.name || ""}</div>
           </div>
         </div>
 
@@ -500,48 +626,57 @@ export default function ClassDetails() {
                       />
                     </svg>
                   </div>
-                  <div className="grid grid-cols-[1fr,2fr,1fr,1fr,auto] gap-4 text-sm text-gray-400 mb-4">
-                    <div>Name</div>
-                    <div>Email</div>
-                    <div>Average Score</div>
-                    <div>Last Active</div>
-                    <div className="text-right">Actions</div>
-                  </div>
-                  {students
-                    .filter(
-                      (student) =>
-                        student.name
-                          .toLowerCase()
-                          .includes(studentSearchQuery.toLowerCase()) ||
-                        student.email
-                          .toLowerCase()
-                          .includes(studentSearchQuery.toLowerCase())
-                    )
-                    .map((student) => (
-                      <div
-                        key={student.email}
-                        className="grid grid-cols-[1fr,2fr,1fr,1fr,auto] gap-4 items-center py-4 text-sm border-t border-[#1F1F1F]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#1F1F1F] flex items-center justify-center text-white">
-                            {student.initials}
-                          </div>
-                          <span className="text-white">{student.name}</span>
-                        </div>
-                        <div className="text-gray-400">{student.email}</div>
-                        <div className="text-white">{student.averageScore}</div>
-                        <div className="text-gray-400">
-                          {student.lastActive}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          className="px-2 text-gray-400 hover:text-red-500"
-                          onClick={() => handleDeleteStudent(student)}
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {classData.students
+                      .filter(
+                        (student) =>
+                          student.name
+                            ?.toLowerCase()
+                            .includes(studentSearchQuery.toLowerCase()) ||
+                          student.email
+                            ?.toLowerCase()
+                            .includes(studentSearchQuery.toLowerCase())
+                      )
+                      .map((student) => (
+                        <div
+                          key={student.id}
+                          className="flex items-center justify-between bg-[#111111] rounded-lg p-3"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm mr-3">
+                              {student.initials}
+                            </div>
+                            <div>
+                              <div className="text-white font-medium">
+                                {student.name}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {student.email}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right text-xs">
+                              <div className="text-white">
+                                {student.averageScore}
+                              </div>
+                              <div className="text-gray-400">
+                                Last Active: {student.lastActive}
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-400 hover:text-red-500"
+                              onClick={() => handleDeleteStudent(student)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
 
@@ -553,246 +688,158 @@ export default function ClassDetails() {
                         Exams
                       </h3>
                       <p className="text-gray-400">
-                        Manage your exams and view performance metrics
+                        Manage exams for this class
                       </p>
                     </div>
-                  </div>
-
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="relative flex-1 max-w-md">
-                      <input
-                        type="text"
-                        placeholder="Search exams..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[#111111] text-white border border-[#222222] rounded-xl px-4 py-2 pl-10 focus:outline-none focus:border-[#3B4CCA] placeholder-gray-500"
-                      />
-                      <svg
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M21 21L15.5 15.5M10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17Z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
-                          >
-                            {rowsPerPage} per page
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-[#1F1F1F] border border-[#333333] text-white">
-                          {[10, 20, 50, 100].map((option) => (
-                            <DropdownMenuItem
-                              key={option}
-                              className="hover:bg-[#2a2a2a] cursor-pointer"
-                              onClick={() => setRowsPerPage(option)}
-                            >
-                              {option} per page
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
-                          >
-                            <svg
-                              className="w-4 h-4 mr-2"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M3 6h18M6 12h12M9 18h6"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                            Sort
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[200px]">
-                          {sortOptions.map((option) => (
-                            <DropdownMenuItem
-                              key={option.value}
-                              className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-transparent focus:bg-transparent cursor-pointer px-3 py-2"
-                              onClick={() => setSelectedSort(option.value)}
-                            >
-                              <span
-                                className={
-                                  selectedSort === option.value
-                                    ? "text-white"
-                                    : ""
-                                }
-                              >
-                                {option.label}
-                              </span>
-                              {selectedSort === option.value && (
-                                <svg
-                                  className="w-4 h-4 ml-auto"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M20 6L9 17L4 12"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 text-sm text-gray-400 mb-4">
-                    <div>Exam Name</div>
-                    <div>Date</div>
-                    <div>Avg. Score</div>
-                    <div>Status</div>
-                    <div className="text-right">Actions</div>
-                  </div>
-                  {filteredExams.map((exam) => (
-                    <div
-                      key={exam.name}
-                      className="grid grid-cols-[2fr,1fr,1fr,1fr,auto] gap-4 items-center py-4 text-sm border-t border-[#1F1F1F]"
+                    <Button
+                      className="bg-[#3B4CCA] text-white hover:bg-[#3343b3] rounded-xl"
+                      onClick={() =>
+                        router.push("/professor-dashboard/exams/create")
+                      }
                     >
-                      <div className="flex items-center gap-3">
-                        <svg
-                          className="w-4 h-4 text-[#3B4CCA]"
-                          viewBox="0 0 24 24"
-                          fill="none"
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Exam
+                    </Button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search exams..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#111111] text-white border border-[#222222] rounded-xl px-4 py-2 pl-10 mb-4 focus:outline-none focus:border-[#3B4CCA] placeholder-gray-500"
+                    />
+                    <svg
+                      className="absolute left-3 top-3 w-4 h-4 text-gray-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <path
+                        d="M21 21L15.5 15.5M10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="flex justify-end mb-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="bg-[#222222] text-white border-zinc-800 hover:bg-[#2a2a2a] rounded-xl"
                         >
-                          <path
-                            d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.2929 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <span className="text-white">{exam.name}</span>
-                      </div>
-                      <div className="text-gray-400">{exam.date}</div>
-                      <div className="text-white">{exam.averageScore}</div>
-                      <div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs ${
-                            exam.status === "Completed"
-                              ? "bg-[#3B4CCA] text-white"
-                              : "bg-[#1F1F1F] text-white"
-                          }`}
-                        >
-                          {exam.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                          <ChevronDown className="h-4 w-4 mr-2" />
+                          Sort
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[200px]">
+                        {[
+                          { label: "Exam Name (A-Z)", value: "name-asc" },
+                          { label: "Exam Name (Z-A)", value: "name-desc" },
+                          { label: "Date (Newest)", value: "date-desc" },
+                          { label: "Date (Oldest)", value: "date-asc" },
+                        ].map((option) => (
+                          <DropdownMenuItem
+                            key={option.value}
+                            className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-transparent focus:bg-transparent cursor-pointer px-3 py-2"
+                            onClick={() => setSelectedSort(option.value)}
+                          >
+                            <span
+                              className={
+                                selectedSort === option.value
+                                  ? "text-white"
+                                  : ""
+                              }
                             >
+                              {option.label}
+                            </span>
+                            {selectedSort === option.value && (
                               <svg
-                                className="w-4 h-4"
+                                className="w-4 h-4 ml-auto"
                                 viewBox="0 0 24 24"
                                 fill="none"
                               >
                                 <path
-                                  d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z"
+                                  d="M20 6L9 17L4 12"
                                   stroke="currentColor"
                                   strokeWidth="2"
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                 />
                               </svg>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
-                          >
-                            <DropdownMenuItem
-                              className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {filteredExams.map((exam) => (
+                      <div
+                        key={exam.id}
+                        className="flex items-center justify-between bg-[#111111] rounded-lg p-4"
+                      >
+                        <div>
+                          <div className="text-white font-medium">
+                            {exam.name}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span>Date: {exam.date}</span>
+                            <span>•</span>
+                            <span>Questions: {exam.questions}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <div className="text-right">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs ${
+                                  exam.status === "Completed"
+                                    ? "bg-blue-900 text-blue-100"
+                                    : "bg-yellow-900 text-yellow-100"
+                                }`}
+                              >
+                                {exam.status}
+                              </span>
+                            </div>
+                            <div className="text-right text-xs mt-1">
+                              <span className="text-gray-400">
+                                Avg. Score: {exam.averageScore}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-400 hover:text-white"
                               onClick={() =>
                                 router.push(
-                                  `/professor-dashboard/exams/${exam.name}`
+                                  `/professor-dashboard/exams/${exam.id}`
                                 )
                               }
                             >
                               <Eye className="h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-400 hover:text-red-500"
                               onClick={() => {
-                                setDeleteExamId(exam.name);
+                                setDeleteExamId(exam.id || null);
                                 setIsDeleteExamDialogOpen(true);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
-                              Delete Exam
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-
-                  <div className="flex justify-between items-center mt-6 text-sm text-gray-400">
-                    <div>
-                      Showing 1 to {filteredExams.length} of{" "}
-                      {filteredExams.length} results
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
-                        disabled
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="bg-[#1F1F1F] text-white border-0 hover:bg-[#2a2a2a] rounded-xl"
-                        disabled
-                      >
-                        Next
-                      </Button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -802,38 +849,45 @@ export default function ClassDetails() {
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white">
+        <DialogContent className="bg-[#0A0A0A] border border-[#1F1F1F] text-white sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
+            <DialogTitle className="text-xl font-semibold text-white">
               Remove Student
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              Are you sure you want to remove {studentToDelete?.name} from this
-              class? This action cannot be undone.
+              Are you sure you want to remove this student from the class? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 justify-end mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmDeleteStudent}
-              className="bg-red-500 text-white hover:bg-red-600"
-            >
-              Remove Student
-            </Button>
-          </DialogFooter>
+          <div className="mt-6">
+            {studentToDelete && (
+              <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
+                <div className="font-medium text-white">
+                  {studentToDelete.name}
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {studentToDelete.email}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDeleteStudent}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Remove Student
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-
-      <NotificationDialog
-        open={isNotificationDialogOpen}
-        onOpenChange={setIsNotificationDialogOpen}
-      />
 
       <Dialog
         open={isDeleteExamDialogOpen}
@@ -846,8 +900,8 @@ export default function ClassDetails() {
             </DialogTitle>
             <DialogDescription className="text-gray-400">
               Are you sure you want to delete this exam? This action cannot be
-              undone. All student responses and scores will be permanently
-              deleted.
+              undone. All associated questions and student data will be
+              permanently deleted.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-6">
@@ -884,6 +938,11 @@ export default function ClassDetails() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <NotificationDialog
+        open={isNotificationDialogOpen}
+        onOpenChange={setIsNotificationDialogOpen}
+      />
     </div>
   );
 }
