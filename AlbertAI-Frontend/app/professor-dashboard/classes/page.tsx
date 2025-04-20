@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import {
@@ -29,52 +29,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const classes = [
-  {
-    id: "bio101",
-    name: "Biology 101",
-    students: 32,
-    averageScore: 78,
-    status: "Active",
-    lastExam: {
-      name: "Midterm Exam",
-      date: "Mar 15, 2025",
-    },
-  },
-  {
-    id: "chem201",
-    name: "Chemistry 201",
-    students: 28,
-    averageScore: 72,
-    status: "Active",
-    lastExam: {
-      name: "Pop Quiz",
-      date: "Mar 10, 2025",
-    },
-  },
-  {
-    id: "phys301",
-    name: "Physics 301",
-    students: 24,
-    averageScore: 81,
-    status: "Active",
-    lastExam: {
-      name: "Lab Practical",
-      date: "Apr 5, 2025",
-    },
-  },
-  {
-    id: "hist101",
-    name: "World History",
-    students: 35,
-    averageScore: 68,
-    status: "Inactive",
-    lastExam: {
-      name: "Chapter Quiz",
-      date: "Feb 20, 2025",
-    },
-  },
-];
+// Delete or comment out the mock classes
+// const classes = [...]
 
 const sortOptions = [
   { label: "Class Name (A-Z)", value: "name-asc" },
@@ -96,18 +52,209 @@ export default function Classes() {
   const [isCopied, setIsCopied] = useState(false);
   const [deleteClassId, setDeleteClassId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const classToDelete = classes.find((c) => c.id === deleteClassId);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    name: string;
+    id?: string;
+    _id?: string;
+    professorId?: string;
+    [key: string]: any;
+  } | null>(null);
+
+  // New state for class data
+  const [classes, setClasses] = useState<
+    Array<{
+      id: number;
+      code: string;
+      className: string;
+      students: Array<{ id: number; name: string; email: string }>;
+      averageScore?: number;
+      status: string;
+      lastExam?: {
+        name: string;
+        date: string;
+      };
+    }>
+  >([]);
+
+  // Get current user data
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const baseApiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+    const apiUrl = `${baseApiUrl}/professor/me`;
+
+    fetch(apiUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        return res.json();
+      })
+      .then((data) => {
+        // Check all possible ID field names
+        if (data && !data.id && !data._id && data.professorId) {
+          data.id = data.professorId;
+        } else if (data && !data.id && data._id) {
+          data.id = data._id;
+        }
+        setCurrentUser(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching professor data:", err);
+      });
+  }, []);
+
+  // Fetch classes and exams when the user is loaded
+  useEffect(() => {
+    const fetchClassesAndExams = async () => {
+      const professorId =
+        currentUser?.id || currentUser?._id || currentUser?.professorId;
+
+      if (!professorId) {
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const baseApiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+
+      setIsLoading(true);
+      try {
+        // Fetch classes with students
+        const classesUrl = `${baseApiUrl}/classes/professor/${professorId}/with-students`;
+        const classesResponse = await fetch(classesUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!classesResponse.ok) {
+          throw new Error(
+            `Failed to fetch classes: ${classesResponse.status} ${classesResponse.statusText}`
+          );
+        }
+
+        const classesData = await classesResponse.json();
+
+        // Fetch exams for the professor
+        const examsUrl = `${baseApiUrl}/Exam/byprofessor/${professorId}`;
+        const examsResponse = await fetch(examsUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        let examsData = [];
+        if (examsResponse.ok) {
+          examsData = await examsResponse.json();
+        }
+
+        // Process the data to match our UI needs
+        const processedClasses = classesData.map((cls) => {
+          // Find the latest exam for this class
+          const classExams = examsData
+            .filter((exam) => exam.className === cls.className)
+            .sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+          const lastExam =
+            classExams.length > 0
+              ? {
+                  name: classExams[0].title,
+                  date: new Date(classExams[0].date).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }
+                  ),
+                }
+              : undefined;
+
+          // Calculate average score - this is a placeholder since we don't have this data
+          // In real app, you would fetch this from a scores endpoint
+          // For now, just assign a random score between 65-95
+          const averageScore = Math.floor(Math.random() * 30) + 65;
+
+          return {
+            id: cls.id,
+            code: cls.code,
+            className: cls.className,
+            students: cls.students,
+            averageScore: averageScore,
+            status: "Active", // Default to Active since we don't have status in the API
+            lastExam,
+          };
+        });
+
+        setClasses(processedClasses);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchClassesAndExams();
+    }
+  }, [currentUser]);
 
   const generateCourseCode = () => {
     // Generate a random course code
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
-  const handleAddClass = () => {
-    // Generate course code after clicking Add Class
+  const handleAddClass = async () => {
+    // Generate course code
     const newCourseCode = generateCourseCode();
     setCourseCode(newCourseCode);
-    setShowCourseCode(true);
+
+    // Create the class in the database
+    const professorId =
+      currentUser?.id || currentUser?._id || currentUser?.professorId;
+    if (!professorId) {
+      console.error("No professor ID found");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const baseApiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+    const apiUrl = `${baseApiUrl}/classes`;
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code: newCourseCode,
+          className: className,
+          professorId: professorId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create class");
+      }
+
+      // Show the course code to the user
+      setShowCourseCode(true);
+
+      // Refresh classes after adding a new one
+      // This would happen on the next render due to the useEffect dependency
+    } catch (error) {
+      console.error("Error creating class:", error);
+      alert("Failed to create class. Please try again.");
+    }
   };
 
   const handleCopyCode = () => {
@@ -122,30 +269,59 @@ export default function Classes() {
     setCourseCode("");
     setShowCourseCode(false);
     setIsCopied(false);
+
+    // Refresh the class list
+    if (currentUser) {
+      const professorId =
+        currentUser.id || currentUser._id || currentUser.professorId;
+      if (professorId) {
+        // This will trigger a re-fetch in the useEffect
+        setCurrentUser({ ...currentUser });
+      }
+    }
   };
+
+  const handleDeleteClass = async () => {
+    if (!deleteClassId) return;
+
+    setIsDeleting(true);
+
+    // In a real app, you would delete the class via API
+    // For now, we'll just simulate it with a timeout
+    setTimeout(() => {
+      // Remove the class from our local state
+      setClasses(classes.filter((c) => c.id.toString() !== deleteClassId));
+      setIsDeleteDialogOpen(false);
+      setDeleteClassId(null);
+      setIsDeleting(false);
+    }, 1000);
+  };
+
+  // Find the class to delete
+  const classToDelete = classes.find((c) => c.id.toString() === deleteClassId);
 
   // Filter and sort classes
   const filteredClasses = classes
     .filter((cls) => {
       if (searchQuery) {
-        return cls.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return cls.className.toLowerCase().includes(searchQuery.toLowerCase());
       }
       return true;
     })
     .sort((a, b) => {
       switch (selectedSort) {
         case "name-asc":
-          return a.name.localeCompare(b.name);
+          return a.className.localeCompare(b.className);
         case "name-desc":
-          return b.name.localeCompare(a.name);
+          return b.className.localeCompare(a.className);
         case "students-asc":
-          return a.students - b.students;
+          return a.students.length - b.students.length;
         case "students-desc":
-          return b.students - a.students;
+          return b.students.length - a.students.length;
         case "score-asc":
-          return a.averageScore - b.averageScore;
+          return (a.averageScore || 0) - (b.averageScore || 0);
         case "score-desc":
-          return b.averageScore - a.averageScore;
+          return (b.averageScore || 0) - (a.averageScore || 0);
         default:
           return 0;
       }
@@ -370,66 +546,86 @@ export default function Classes() {
                 <div className="text-right">Actions</div>
               </div>
 
-              {filteredClasses.map((cls) => (
-                <div
-                  key={cls.id}
-                  className="grid grid-cols-6 text-sm py-4 border-t border-[#1F1F1F] group"
-                >
-                  <div className="col-span-2 flex items-center gap-3">
-                    <Users className="h-5 w-5 text-white" />
-                    <div>
-                      <div className="text-white font-medium">{cls.name}</div>
-                      <div className="text-xs text-gray-400">{cls.status}</div>
-                    </div>
-                  </div>
-                  <div className="text-white">{cls.students}</div>
-                  <div className="text-white">{cls.averageScore}%</div>
-                  <div>
-                    <div className="text-white">{cls.lastExam.name}</div>
-                    <div className="text-xs text-gray-400">
-                      {cls.lastExam.date}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-gray-400"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
-                      >
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                          onClick={() =>
-                            router.push(
-                              `/professor-dashboard/classes/${cls.id}`
-                            )
-                          }
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
-                          onClick={() => {
-                            setDeleteClassId(cls.id);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete Class
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+              {isLoading ? (
+                <div className="py-20 flex justify-center">
+                  <Icons.spinner className="h-8 w-8 animate-spin text-white" />
                 </div>
-              ))}
+              ) : filteredClasses.length > 0 ? (
+                filteredClasses.map((cls) => (
+                  <div
+                    key={cls.id}
+                    className="grid grid-cols-6 text-sm py-4 border-t border-[#1F1F1F] group"
+                  >
+                    <div className="col-span-2 flex items-center gap-3">
+                      <Users className="h-5 w-5 text-white" />
+                      <div>
+                        <div className="text-white font-medium">
+                          {cls.className}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {cls.status}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-white">{cls.students.length}</div>
+                    <div className="text-white">{cls.averageScore || "—"}%</div>
+                    <div>
+                      {cls.lastExam ? (
+                        <>
+                          <div className="text-white">{cls.lastExam.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {cls.lastExam.date}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-gray-400">No exams yet</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-gray-400"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-[#111111] border border-zinc-800 rounded-xl p-1 min-w-[160px]"
+                        >
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 text-gray-400 hover:text-white focus:text-white hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                            onClick={() =>
+                              router.push(
+                                `/professor-dashboard/classes/${cls.id}`
+                              )
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 text-red-500 hover:text-red-400 focus:text-red-400 hover:bg-[#222222] focus:bg-[#222222] cursor-pointer px-3 py-2 rounded-lg"
+                            onClick={() => {
+                              setDeleteClassId(cls.id.toString());
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete Class
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-20 text-center text-gray-400">
+                  No classes found. Create a new class to get started.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -451,10 +647,11 @@ export default function Classes() {
             {classToDelete && (
               <div className="mb-6 p-4 rounded-lg bg-[#111111] border border-[#222222]">
                 <div className="font-medium text-white">
-                  {classToDelete.name}
+                  {classToDelete.className}
                 </div>
                 <div className="text-sm text-gray-400 mt-1">
-                  {classToDelete.students} students • {classToDelete.status}
+                  {classToDelete.students.length} students •{" "}
+                  {classToDelete.status}
                 </div>
               </div>
             )}
@@ -463,19 +660,23 @@ export default function Classes() {
                 variant="outline"
                 onClick={() => setIsDeleteDialogOpen(false)}
                 className="bg-transparent border-[#222222] text-white hover:bg-[#222222]"
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
               <Button
-                onClick={() => {
-                  // Add delete logic here
-                  console.log("Deleting class:", deleteClassId);
-                  setIsDeleteDialogOpen(false);
-                  setDeleteClassId(null);
-                }}
+                onClick={handleDeleteClass}
                 className="bg-red-500 text-white hover:bg-red-600"
+                disabled={isDeleting}
               >
-                Delete Class
+                {isDeleting ? (
+                  <div className="flex items-center">
+                    <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </div>
+                ) : (
+                  "Delete Class"
+                )}
               </Button>
             </div>
           </div>
