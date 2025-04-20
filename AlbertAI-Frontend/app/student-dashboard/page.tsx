@@ -1,8 +1,4 @@
-
-
 "use client";
-
-
 
 import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
@@ -110,39 +106,6 @@ const performanceData = [
   },
 ];
 
-const upcomingTests = [
-  {
-    title: "Midterm Exam",
-    date: "Mar 15, 2025 - 10:00 AM",
-    course: "Biology 101",
-    icon: <ScrollText className="w-5 h-5 text-white" />,
-  },
-  {
-    title: "Pop Quiz",
-    date: "Mar 10, 2025 - 2:00 PM",
-    course: "Chemistry 201",
-    icon: <BookOpen className="w-5 h-5 text-white" />,
-  },
-  {
-    title: "Final Exam",
-    date: "Apr 20, 2025 - 9:00 AM",
-    course: "Physics 301",
-    icon: <ScrollText className="w-5 h-5 text-white" />,
-  },
-  {
-    title: "Chapter 5 Quiz",
-    date: "Mar 18, 2025 - 11:30 AM",
-    course: "Biology 101",
-    icon: <BookOpen className="w-5 h-5 text-white" />,
-  },
-  {
-    title: "Lab Practical",
-    date: "Apr 5, 2025 - 3:00 PM",
-    course: "Chemistry 201",
-    icon: <ClipboardCheck className="w-5 h-5 text-white" />,
-  },
-];
-
 const studyHistory = [
   {
     name: "Biology Chapter 1",
@@ -218,7 +181,6 @@ export default function StudentDashboardPage() {
     direction: "desc",
   });
   const router = useRouter();
-
 
   const [currentUser, setCurrentUser] = useState<{
     name: string;
@@ -413,6 +375,161 @@ export default function StudentDashboardPage() {
     }
   }, [selectedCourse]);
 
+  const [allExams, setAllExams] = useState<Array<any>>([]);
+  const [isLoadingAllExams, setIsLoadingAllExams] = useState(false);
+
+  // Fetch all exams for the student from all their classes
+  useEffect(() => {
+    const fetchAllExams = async () => {
+      if (!currentUser?.classes || currentUser.classes.length === 0) {
+        return;
+      }
+
+      setIsLoadingAllExams(true);
+      try {
+        // Fetch exams for each class the student is enrolled in
+        const examPromises = currentUser.classes.map((className) =>
+          fetch(
+            `http://localhost:5051/api/Exam/byclassname?className=${encodeURIComponent(
+              className
+            )}`
+          )
+            .then((res) => {
+              if (!res.ok) {
+                console.error(
+                  `Failed to fetch exams for ${className}: ${res.status} ${res.statusText}`
+                );
+                return [];
+              }
+              return res.json();
+            })
+            .catch((err) => {
+              console.error(`Error fetching exams for ${className}:`, err);
+              return [];
+            })
+        );
+
+        const results = await Promise.all(examPromises);
+        console.log("Raw API results for exams:", results);
+
+        // Flatten the array of arrays and add className to each exam
+        const allExamsWithClass = results.flatMap((exams, index) => {
+          const className = currentUser.classes[index];
+          return exams.map((exam: any) => {
+            console.log(`Processing exam:`, exam);
+            return {
+              ...exam,
+              className: className,
+              // Use the Title field from API as examName
+              examName: exam.title || exam.examName || "Unnamed Exam",
+              // If no date info is present, set it to tomorrow to ensure it shows up
+              date:
+                exam.date ||
+                exam.examDate ||
+                new Date(
+                  new Date().setDate(new Date().getDate() + 1)
+                ).toISOString(),
+              status: "Scheduled", // Assume all exams are scheduled
+            };
+          });
+        });
+
+        console.log("Processed exams:", allExamsWithClass);
+        setAllExams(allExamsWithClass);
+      } catch (error) {
+        console.error("Error fetching all exams:", error);
+      } finally {
+        setIsLoadingAllExams(false);
+      }
+    };
+
+    fetchAllExams();
+  }, [currentUser?.classes]);
+
+  // Function to get upcoming tests from all exams
+  const getUpcomingTests = () => {
+    if (isLoadingAllExams) {
+      return [];
+    }
+
+    console.log("Getting upcoming tests from:", allExams);
+
+    if (allExams.length === 0) {
+      // For testing - return one hardcoded item if no exams found
+      return [
+        {
+          title: "Demo Exam",
+          date: "May 1, 2025 - 10:00 AM",
+          course: "Sample Class",
+          icon: <ScrollText className="w-5 h-5 text-white" />,
+        },
+      ];
+    }
+
+    const now = new Date();
+
+    // Filter exams that are scheduled in the future
+    return (
+      allExams
+        .filter((exam) => {
+          const examDate = new Date(exam.date);
+          const isUpcoming = examDate > now;
+          console.log(
+            `Exam ${
+              exam.examName || exam.title
+            }, date: ${examDate}, is upcoming: ${isUpcoming}`
+          );
+          return isUpcoming;
+        })
+        // Sort by date (closest first)
+        .sort((a, b) => {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        })
+        // Take the first 5 or fewer
+        .slice(0, 5)
+        // Map to the format expected by the UI
+        .map((exam) => {
+          // Format the date string
+          let formattedDate = "";
+          try {
+            const date = new Date(exam.date);
+            formattedDate =
+              date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }) +
+              " - " +
+              date.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              });
+          } catch (e) {
+            formattedDate = exam.date;
+          }
+
+          // Determine icon based on exam name
+          let icon = <ScrollText className="w-5 h-5 text-white" />;
+          const examTitle = (exam.examName || exam.title || "").toLowerCase();
+          if (examTitle.includes("quiz")) {
+            icon = <BookOpen className="w-5 h-5 text-white" />;
+          } else if (
+            examTitle.includes("lab") ||
+            examTitle.includes("practical")
+          ) {
+            icon = <ClipboardCheck className="w-5 h-5 text-white" />;
+          }
+
+          return {
+            title: exam.examName || exam.title,
+            date: formattedDate,
+            course: exam.className,
+            icon: icon,
+          };
+        })
+    );
+  };
 
   function getInitials(fullName?: string): string {
     if (!fullName) return "";
@@ -505,7 +622,6 @@ export default function StudentDashboardPage() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-
                     <span className="text-black font-medium text-lg">
                       {getInitials(currentUser?.name)}
                     </span>
@@ -513,7 +629,6 @@ export default function StudentDashboardPage() {
                   <span className="text-white font-medium">
                     {currentUser?.name}
                   </span>
-
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -582,19 +697,29 @@ export default function StudentDashboardPage() {
                 Upcoming Tests & Quizzes
               </h3>
               <div className="space-y-3">
-                {upcomingTests.map((test, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-[8px] bg-[#111111] border border-[#222222]"
-                  >
-                    {test.icon}
-                    <div>
-                      <h4 className="font-medium text-white">{test.title}</h4>
-                      <p className="text-sm text-zinc-400">{test.date}</p>
-                      <p className="text-sm text-zinc-400">{test.course}</p>
-                    </div>
+                {isLoadingAllExams ? (
+                  <div className="flex justify-center p-4">
+                    <div className="h-6 w-6 animate-spin text-white border-2 border-white rounded-full border-t-transparent" />
                   </div>
-                ))}
+                ) : getUpcomingTests().length > 0 ? (
+                  getUpcomingTests().map((test, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 rounded-[8px] bg-[#111111] border border-[#222222]"
+                    >
+                      {test.icon}
+                      <div>
+                        <h4 className="font-medium text-white">{test.title}</h4>
+                        <p className="text-sm text-zinc-400">{test.date}</p>
+                        <p className="text-sm text-zinc-400">{test.course}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4 text-zinc-400">
+                    No upcoming tests or quizzes
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -623,7 +748,6 @@ export default function StudentDashboardPage() {
                         <div className="flex items-center space-x-4">
                           <BookOpen className="h-8 w-8 text-blue-200" />
                           <div>
-
                             <h3 className="text-2xl font-bold text-white mb-1">
                               {selectedCourse ||
                                 (!currentUser?.classes ||
@@ -644,7 +768,6 @@ export default function StudentDashboardPage() {
                       className="w-[var(--radix-dropdown-menu-trigger-width)] bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden"
                     >
                       <AnimatePresence>
-
                         {currentUser?.classes?.map((course, index) => (
                           <motion.div
                             key={course}
@@ -747,7 +870,6 @@ export default function StudentDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-
                 onClick={() => {
                   if (selectedCourse) {
                     const url = `/student-dashboard/flashcards?class=${encodeURIComponent(
@@ -772,13 +894,11 @@ export default function StudentDashboardPage() {
                   <div className="text-2xl font-bold text-white group-hover:text-black">
                     {questionCounts.flashcards}
                   </div>
-
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-
                 onClick={() => {
                   if (selectedCourse) {
                     const url = `/student-dashboard/true-false?class=${encodeURIComponent(
@@ -788,12 +908,10 @@ export default function StudentDashboardPage() {
                       ? `${url}&examId=${selectedExam[1]}`
                       : url;
                     router.push(urlWithExam);
-
                   } else {
                     router.push(`/student-dashboard/true-false`);
                   }
                 }}
-
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
@@ -805,13 +923,11 @@ export default function StudentDashboardPage() {
                   <div className="text-2xl font-bold text-white group-hover:text-black">
                     {questionCounts.trueFalse}
                   </div>
-
                 </CardContent>
               </Card>
 
               <Card
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
-
                 onClick={() => {
                   if (selectedCourse) {
                     const url = `/student-dashboard/multiple-choice?class=${encodeURIComponent(
@@ -821,13 +937,11 @@ export default function StudentDashboardPage() {
                       ? `${url}&examId=${selectedExam[1]}`
                       : url;
                     router.push(urlWithExam);
-
                   } else {
                     router.push(`/student-dashboard/multiple-choice`);
                   }
                 }}
               >
-
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
                     Multiple Choice
@@ -838,7 +952,6 @@ export default function StudentDashboardPage() {
                   <div className="text-2xl font-bold text-white group-hover:text-black">
                     {questionCounts.multipleChoice}
                   </div>
-
                 </CardContent>
               </Card>
 
@@ -846,7 +959,6 @@ export default function StudentDashboardPage() {
                 className="bg-[#111111] border-[#222222] hover:bg-white hover:text-black transition-colors cursor-pointer group rounded-xl"
                 onClick={() => router.push("/student-dashboard/practice-test")}
               >
-
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
                   <CardTitle className="text-sm font-medium text-white group-hover:text-black">
                     Practice Tests
@@ -857,7 +969,6 @@ export default function StudentDashboardPage() {
                   <div className="text-2xl font-bold text-white group-hover:text-black">
                     {questionCounts.practiceTests}
                   </div>
-
                 </CardContent>
               </Card>
             </div>
