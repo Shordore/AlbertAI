@@ -16,7 +16,8 @@ export default function SignUpPage() {
   const router = useRouter();
 
   // Use the environment variable for the API base URL
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,16 +35,16 @@ export default function SignUpPage() {
       email: email,
       Password: password,
       Name: name,
-      classCode: classCode
+      classCode: classCode,
     };
 
     try {
       const response = await fetch(`${API_URL}/Account/register`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -53,11 +54,38 @@ export default function SignUpPage() {
         return;
       }
 
-      // If registration is successful, redirect to the sign-in page.
+      // Registration successful, now automatically log in the user
+      const loginResponse = await fetch(`${API_URL}/Account/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          Password: password,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        // This should rarely happen if registration was successful
+        setErrorMsg(
+          "Registration successful but login failed. Please sign in manually."
+        );
+        setIsLoading(false);
+        router.push("/sign-in");
+        return;
+      }
+
+      // Get the token and store it
+      const loginData = await loginResponse.json();
+      const token = loginData.Token || loginData.token;
+      localStorage.setItem("token", token);
+
+      // Redirect to the student dashboard
       setIsLoading(false);
-      router.push("/sign-in");
+      router.push("/student-dashboard");
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Registration/login error:", error);
       setErrorMsg("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
@@ -195,7 +223,10 @@ export default function SignUpPage() {
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-400">
               Already have an account?{" "}
-              <Link href="/sign-in" className="text-blue-400 hover:text-blue-300">
+              <Link
+                href="/sign-in"
+                className="text-blue-400 hover:text-blue-300"
+              >
                 Sign In
               </Link>
             </p>
