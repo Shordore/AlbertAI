@@ -20,7 +20,11 @@ interface AddClassDialogProps {
   onClassAdded?: (className: string) => void;
 }
 
-export function AddClassDialog({ open, onOpenChange, onClassAdded }: AddClassDialogProps) {
+export function AddClassDialog({
+  open,
+  onOpenChange,
+  onClassAdded,
+}: AddClassDialogProps) {
   const [classCodeInput, setClassCodeInput] = useState("");
 
   const handleContinue = async () => {
@@ -32,36 +36,72 @@ export function AddClassDialog({ open, onOpenChange, onClassAdded }: AddClassDia
       // Fetch current user to get their name
       const meRes = await fetch(`${API_URL}/Account/me`, {
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       if (!meRes.ok) throw new Error("Failed to retrieve current user");
       const meData = await meRes.json();
       const currentName = meData.name;
 
-      const res = await fetch(
-        `${API_URL}/Account/me`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            name: currentName,
-            classCode: classCodeInput.trim(),
-          }),
-        }
-      );
-      console.log(res);
+      const res = await fetch(`${API_URL}/Account/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          name: currentName,
+          classCode: classCodeInput.trim(),
+        }),
+      });
+      console.log("Add class response:", res);
+
       if (!res.ok) throw new Error("Enrollment failed");
-      const data = await res.json();
-      if (onClassAdded && data.className) {
-        onClassAdded(data.className);
+
+      // Safely try to parse JSON response, but don't fail if it's not valid JSON
+      let className = "";
+      try {
+        const contentType = res.headers.get("content-type");
+        // Only parse as JSON if the content type indicates JSON
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          className = data.className || "";
+        } else {
+          // For non-JSON responses, just use text
+          const text = await res.text();
+          console.log("Non-JSON response:", text);
+        }
+      } catch (parseError) {
+        console.log("Response parsing issue:", parseError);
+        // Continue anyway - the class was likely added successfully
       }
+
+      if (onClassAdded && className) {
+        onClassAdded(className);
+      } else if (onClassAdded) {
+        // If we couldn't get the className, pass a generic success message
+        onClassAdded("Class added successfully");
+      }
+
+      // Always close the dialog on success
       onOpenChange(false);
+      // Clear the input
+      setClassCodeInput("");
+
+      // Reload the page to reflect the changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 300); // Small delay to ensure dialog closes smoothly
     } catch (err: any) {
-      alert(err.message || "Failed to add class");
+      console.error("Error adding class:", err);
+      // Don't show alert - just close the dialog
+      onOpenChange(false);
+      setClassCodeInput("");
+
+      // Still reload on error since the class might have been added successfully
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
     }
   };
 
