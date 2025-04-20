@@ -204,6 +204,16 @@ export default function ProfessorDashboard() {
   const [exams, setExams] = useState<ProcessedExam[]>([]);
   const [isLoadingExams, setIsLoadingExams] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([]);
+  const [classes, setClasses] = useState<
+    Array<{
+      id: number;
+      code: string;
+      className: string;
+      students: Array<{ id: number; name: string; email: string }>;
+      averageScore?: number;
+    }>
+  >([]);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -292,6 +302,47 @@ export default function ProfessorDashboard() {
     };
 
     fetchExams();
+  }, [currentUser]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const professorId =
+        currentUser?.id || currentUser?._id || currentUser?.professorId;
+
+      if (!professorId) {
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const baseApiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5051/api";
+      const apiUrl = `${baseApiUrl}/classes/professor/${professorId}/with-students`;
+
+      setIsLoadingClasses(true);
+      try {
+        const response = await fetch(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch classes: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        setClasses(data);
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+        setClasses([]);
+      } finally {
+        setIsLoadingClasses(false);
+      }
+    };
+
+    fetchClasses();
   }, [currentUser]);
 
   // Generate filter options when exams change
@@ -814,31 +865,43 @@ export default function ProfessorDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {classes.map((cls) => (
-                      <Link
-                        key={cls.id}
-                        href={`/professor-dashboard/classes/${cls.id}`}
-                        className="flex items-center justify-between rounded-xl bg-white/10 p-3 transition-colors hover:bg-white/20"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Users className="h-5 w-5" />
-                          <div>
-                            <div className="font-medium">{cls.name}</div>
-                            <div className="text-xs text-white/70">
-                              {cls.students} students
+                  {isLoadingClasses ? (
+                    <div className="flex justify-center py-8">
+                      <Icons.spinner className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : classes.length > 0 ? (
+                    <div className="space-y-4">
+                      {classes.map((cls) => (
+                        <Link
+                          key={cls.id}
+                          href={`/professor-dashboard/classes/${cls.id}`}
+                          className="flex items-center justify-between rounded-xl bg-white/10 p-3 transition-colors hover:bg-white/20"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Users className="h-5 w-5" />
+                            <div>
+                              <div className="font-medium">{cls.className}</div>
+                              <div className="text-xs text-white/70">
+                                {cls.students.length} students
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{cls.averageScore}%</div>
-                          <div className="text-xs text-white/70">
-                            Class Preparedness
+                          <div className="text-right">
+                            <div className="font-medium">
+                              {cls.averageScore || "—"}%
+                            </div>
+                            <div className="text-xs text-white/70">
+                              Class Preparedness
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-white/70">
+                      No classes found. Create a new class to get started.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

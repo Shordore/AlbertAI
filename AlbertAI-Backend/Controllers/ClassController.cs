@@ -121,5 +121,37 @@ namespace AlbertAI.Controllers
 
             return Ok(classes);
         }
+
+        // GET: api/classes/professor/{professorId}/with-students
+        [HttpGet("professor/{professorId}/with-students")]
+        public async Task<IActionResult> GetClassesWithStudentsByProfessorId(int professorId)
+        {
+            // Get all classes for the professor
+            var classes = await _context.ClassCodes
+                .Where(c => c.ProfessorId == professorId)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Code,
+                    c.ClassName,
+                    Students = _context.UserClasses
+                        .Where(uc => uc.ClassName == c.ClassName)
+                        .Select(uc => new
+                        {
+                            uc.User.Id,
+                            uc.User.Name,
+                            uc.User.Email
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            if (!classes.Any())
+            {
+                return NotFound($"No classes found for professor with ID: {professorId}");
+            }
+
+            return Ok(classes);
+        }
     }
 }
