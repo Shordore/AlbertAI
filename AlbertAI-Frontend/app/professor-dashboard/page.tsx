@@ -765,6 +765,72 @@ export default function ProfessorDashboard() {
     setDeleteNotificationId(null);
   };
 
+  // Add this function to get upcoming tests from exams
+  const getUpcomingTests = () => {
+    if (isLoadingExams || exams.length === 0) {
+      return [];
+    }
+
+    const now = new Date();
+
+    // Filter exams that are scheduled in the future
+    return (
+      exams
+        .filter((exam) => {
+          const examDate = new Date(exam.examDate);
+          return examDate > now && exam.status === "Scheduled";
+        })
+        // Sort by date (closest first)
+        .sort((a, b) => {
+          return (
+            new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
+          );
+        })
+        // Take the first 5 or fewer
+        .slice(0, 5)
+        // Map to the format expected by the UI
+        .map((exam) => {
+          // Format the date string
+          let formattedDate = "";
+          try {
+            const date = new Date(exam.examDate);
+            formattedDate =
+              date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }) +
+              " - " +
+              date.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              });
+          } catch (e) {
+            formattedDate = exam.examDate;
+          }
+
+          // Determine icon based on exam name
+          let icon = <ScrollText className="w-5 h-5 text-white" />;
+          if (exam.examName.toLowerCase().includes("quiz")) {
+            icon = <BookOpen className="w-5 h-5 text-white" />;
+          } else if (
+            exam.examName.toLowerCase().includes("lab") ||
+            exam.examName.toLowerCase().includes("practical")
+          ) {
+            icon = <ClipboardCheck className="w-5 h-5 text-white" />;
+          }
+
+          return {
+            title: exam.examName,
+            date: formattedDate,
+            course: exam.className,
+            icon: icon,
+          };
+        })
+    );
+  };
+
   return (
     <div className="min-h-screen bg-black">
       <div className="flex">
@@ -816,19 +882,29 @@ export default function ProfessorDashboard() {
                 Upcoming Tests & Quizzes
               </h3>
               <div className="space-y-3">
-                {upcomingTests.map((test, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-[8px] bg-[#111111] border border-[#222222]"
-                  >
-                    {test.icon}
-                    <div>
-                      <h4 className="font-medium text-white">{test.title}</h4>
-                      <p className="text-sm text-zinc-400">{test.date}</p>
-                      <p className="text-sm text-zinc-400">{test.course}</p>
-                    </div>
+                {isLoadingExams ? (
+                  <div className="flex justify-center p-4">
+                    <Icons.spinner className="h-6 w-6 animate-spin text-white" />
                   </div>
-                ))}
+                ) : getUpcomingTests().length > 0 ? (
+                  getUpcomingTests().map((test, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 rounded-[8px] bg-[#111111] border border-[#222222]"
+                    >
+                      {test.icon}
+                      <div>
+                        <h4 className="font-medium text-white">{test.title}</h4>
+                        <p className="text-sm text-zinc-400">{test.date}</p>
+                        <p className="text-sm text-zinc-400">{test.course}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center p-4 text-zinc-400">
+                    No upcoming tests or quizzes
+                  </div>
+                )}
               </div>
             </div>
           </div>
